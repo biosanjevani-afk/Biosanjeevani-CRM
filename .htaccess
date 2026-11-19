@@ -1,0 +1,31 @@
+# BioSanjeevani CRM — Content-Security-Policy
+# Added for Phase 3B production hardening (crm.biosanjeevani.com).
+# Scoped to this directory only. No redirects or other rules are added,
+# and no other site/directory configuration is touched by this file.
+#
+# script-src: 'self' for the app's own js/*.js modules; https://esm.sh for the
+#   pinned Supabase JS import; the sha256 hash below is index.html's existing
+#   inline theme-detection script (prevents a light/dark flash on load) —
+#   allow-listed by exact hash instead of 'unsafe-inline' so no inline script
+#   is broadly permitted.
+# style-src: 'self' for styles.css and https://fonts.googleapis.com for Google
+#   Fonts. 'unsafe-inline' is required here because the dashboard renders
+#   progress-bar widths as inline style="width:NN%" attributes computed at
+#   render time (a different value on every render) — these can't be
+#   pre-hashed or served via a nonce, and this is existing, unmodified
+#   dashboard-calculation behavior that must keep working.
+# img-src: 'self' only — the BioSanjeevani logo is a local asset and no
+#   external images are used.
+# font-src: 'self' plus https://fonts.gstatic.com, where the Google Fonts
+#   stylesheet actually serves the font files from.
+# connect-src: 'self' plus the exact Supabase project origin used for both
+#   Auth and the leads REST API — no wildcard Supabase domain, and no
+#   WebSocket/Realtime origin since this app does not use Supabase Realtime.
+# object-src 'none', base-uri 'self', frame-ancestors 'none', form-action
+#   'self': standard baseline hardening: no plugins, no <base> hijacking, the
+#   app may not be framed by other sites, and forms may only ever submit
+#   back to this origin (in practice they never navigate at all — both forms
+#   are handled entirely via JS with preventDefault()).
+<IfModule mod_headers.c>
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://esm.sh 'sha256-0V37RzSKuKIqTAC0XjZJKtHf0HM7sdapC7Kqspdw3/k='; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; img-src 'self'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://qzphbylitjmazytieoze.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+</IfModule>

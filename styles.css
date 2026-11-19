@@ -1,0 +1,1768 @@
+:root{color-scheme:light;--green:#176b42;--forest:#103d29;--leaf:#a8d66d;--canvas:#edf4ef;--surface:#fff;--surface-soft:#e8f2ec;--surface-elevated:#f6faf7;--line:#c9ddd0;--ink:#153127;--muted:#66766e;--danger:#b8423b;--danger-soft:#fbe9e7;--info:#2f6fb0;--info-soft:#e9f0f9;--purple:#7c5cbf;--purple-soft:#f1ecfa;--warning:#a8710f;--warning-soft:#fdf1dd;--radius:16px;--radius-lg:22px;--radius-sm:10px;--shadow:0 10px 30px rgba(16,61,41,.08);--shadow-elevated:0 20px 46px rgba(16,61,41,.14);--font-display:'Manrope',sans-serif;--font-body:'DM Sans',sans-serif;--ease:180ms ease;--ease-slow:220ms ease;--gradient-brand:linear-gradient(135deg,#1c8f5c, #0a2b1c);
+/* Phase 10 — UI/UX redesign token notes: --surface-elevated/--info/--purple/
+   --warning/--shadow-elevated/--radius-sm/--gradient-brand are new tokens
+   added for the redesign's card-hierarchy and strategic-accent-colour
+   requirements. --radius/--radius-lg were nudged 14/20 -> 16/22 for the
+   "softer rounded cards" direction — this is safe across every existing
+   breakpoint because no @media block in this file ever redefines --radius
+   itself (only literal padding/gap px values are ever overridden per
+   breakpoint), so the corner radius stays consistent at every width
+   automatically via the existing var(--radius) usages already threaded
+   through .card/.metric-card/.leads-card/.analytics-card/etc. Existing
+   tokens (--green/--forest/--leaf/--canvas/--surface/--surface-soft/--line/
+   --ink/--muted/--danger/--danger-soft/--font-* /--ease/--space-*) are
+   UNCHANGED in :root — only extended, never redefined, so every rule
+   already using them keeps its exact current light-theme appearance except
+   where a new Phase 10 rule explicitly overrides it further down this file.
+
+   PHASE 12 — comment-corruption fix (discovered during Phase 12 spacing
+   verification, real Chromium computed-style check, not a hypothetical).
+   CAUTION FOR ANY FUTURE EDITOR OF THIS COMMENT: do not type an asterisk
+   immediately followed by a slash anywhere in this paragraph, even inside
+   quotes describing the bug — a CSS comment has no quoting/escaping, so
+   that exact two-character sequence ends the comment wherever it occurs,
+   which is precisely the bug being described here.
+   The line above used to read the token list with no space between the
+   trailing wildcard star of the font-token entry and the following slash.
+   That two-character sequence (an asterisk directly followed by a slash)
+   is the standard CSS comment terminator, so it silently closed this
+   comment right there, exactly like it would anywhere else in a
+   stylesheet. Everything after that accidental close, up to the next
+   genuine comment-open/comment-close pair (the "Phase 7: global spacing
+   system" comment immediately below), was thereby parsed as actual CSS,
+   not comment text — plain English prose with no semicolons, so it became
+   a malformed declaration attempt that silently swallowed the very next
+   real declaration in this block: the custom property that sets the
+   spacing used for tight control groups (the one --space-control-gap
+   token with the extra "-tight" suffix). That custom property was never
+   registered at all: querying its computed value on the document root
+   returned an empty string in real Chromium, and every rule using it via
+   var() (`.filter-row{gap:...}` — the status-filter-and-Clear-filters row
+   shared by Leads/Quotations/Invoices, live since Phase 7) computed to no
+   gap at all — confirmed with real getBoundingClientRect measurements
+   showing 0px between adjacent filter controls at every width. Inserting
+   one space so the wildcard star and the following slash are no longer
+   adjacent is the entire fix — it changes zero real style rules, only
+   restores this pre-existing comment to actually behaving as a comment,
+   letting the browser's own already-correct `.filter-row` gap declaration
+   (unchanged, still exactly where Phase 7 put it) finally take effect the
+   way it always should have. Re-verified with tinycss2 (0 parse errors,
+   and the previously swallowed declaration now appears in the parsed
+   :root rule) and with a real Chromium computed-style check (now resolves
+   to 8px, matching the other spacing tokens). See the Phase 12 report for
+   the full before/after measurement. */
+/* Phase 7: global spacing system. Named tiers mirror the --radius/--radius-lg
+   two-size precedent already established above. Values are the ones already
+   governing the app's real layout rhythm (verified by frequency across
+   styles.css) — this file, not a new one, so applying these tokens at the
+   named landmarks below is a zero-visual-diff change except where a genuine
+   inconsistency is called out inline (search "spacing bug fix"). Spacing is
+   not theme-dependent, so these are defined once here and apply identically
+   under [data-theme=dark]. */
+--space-control-gap-tight:8px;--space-control-gap:10px;
+--space-card-gap:16px;--space-card-gap-mobile:10px;
+--space-heading-gap:18px;
+--space-section:28px;--space-section-mobile:21px;
+--space-section-lg:35px;--space-section-lg-mobile:25px;
+--space-section-emphasis:20px;--space-section-emphasis-mobile:15px}
+/* CRM VISUAL REDESIGN CORRECTION (Sep 2026) — genuine light-mode counterpart,
+   not a blind inversion of the dark palette above. --canvas gets a visible
+   sage-green tint (was #f3f7f3, a near-white barely distinguishable from
+   --surface's pure white) so the page background and card surfaces read as
+   two distinct tiers instead of "white on almost-white". --surface-soft and
+   --surface-elevated both move further from plain white for the same
+   reason (soft fills like progress-track wells and table headers now read
+   as a deliberate third tier, and the elevated gradient technique used by
+   .card/.analytics-card/etc. below gets real contrast to render instead of
+   an almost-no-op white-on-white gradient). --line becomes a clearly-visible
+   sage border instead of a near-invisible grey-green. --green/--ink/--muted
+   are unchanged — light mode was never the part of the brief with a
+   contrast problem, only card/background separation and border visibility
+   were. */
+/* Phase 10 — dark theme is the approved flagship direction (dark forest-
+   green SaaS reference). Rebuilt with THREE distinct surface tiers instead
+   of the previous two (--canvas page bg < --surface card bg < NEW
+   --surface-elevated for hovered/lifted/modal-level surfaces) so cards read
+   as genuinely layered rather than "identical dark rectangles" (the exact
+   monotony complaint in the brief). --green becomes a vivid emerald accent
+   (was a paler mint) for primary buttons/active nav/positive trends, close
+   to the reference mockup's bright accent green. New --info/--purple/
+   --warning get dark-appropriate brighter values (a color tuned for text on
+   white paper reads too dim on a near-black surface) so the "strategic
+   accent colours" system stays legible in dark mode — see the print
+   section far below, which is untouched and uses its OWN fixed --pd-* vars
+   specifically so it never inherits any of this. */
+[data-theme=dark]{color-scheme:dark;--green:#35d68c;--forest:#0a2b1c;--leaf:#b9e08a;--canvas:#06130e;--surface:#0b1f17;--surface-soft:#0e251c;--surface-elevated:#10291f;--line:#1c4a36;--ink:#f3f8f5;--muted:#9ab3a6;--danger:#ff7b6e;--danger-soft:#2e1512;--info:#6ba6f5;--info-soft:#132539;--purple:#b699f0;--purple-soft:#231a38;--warning:#f2b84e;--warning-soft:#2e2110;--shadow:0 18px 46px rgba(0,0,0,.4);--shadow-elevated:0 26px 60px rgba(0,0,0,.52);--gradient-brand:linear-gradient(135deg,#1c8f5c,#0a2b1c)}
+/* CRM VISUAL REDESIGN CORRECTION (Sep 2026) — dark-theme token overhaul.
+   Root cause of the prior redesign pass reading as "basically unchanged":
+   the earlier --canvas/--surface/--surface-elevated values (#0a1712/
+   #11221b/#17291f) were all within a few RGB points of each other and of
+   the page background, so the card-depth gradient technique added that
+   pass (search ".card,.analytics-card,.metric-card,.leads-card{background:
+   linear-gradient..." below) had almost no real contrast to render —
+   the technique was sound, the token VALUES underneath it were not. These
+   values are pulled from the user's approved reference palette (bg
+   #06130E, card #0B1F17, elevated #10291F, border/accent #1C4A36, ink
+   #F3F8F5) — --green (#35d68c) was already an exact match and is
+   unchanged. --muted absorbs the reference's "secondary text" tier
+   (#9AB3A6) rather than its darkest "muted text" tier (#6F8B7D), since
+   this architecture has only one muted-text token and it is reused
+   everywhere from card sub-labels down to table headers — the darker
+   reference value risked failing contrast on small text in those spots.
+   --surface-soft sits between --surface and --surface-elevated (used for
+   progress-track wells, table headers, badge fills) rather than being
+   darkest-of-the-three as it was before, since with --canvas now
+   meaningfully darker than --surface, the old "soft" tier's job of
+   reading as *slightly* recessed relative to a card is better served by a
+   value between surface and elevated than one competing with canvas. */
+/* Phase 22: restore native [hidden] behavior (mirrors finance/styles.css's
+   identical fix). Several author rules below (e.g. label{display:grid},
+   .field-error{display:block}) set `display` unconditionally, which — per
+   normal CSS cascade rules — beats the browser's own default
+   `[hidden]{display:none}` UA-stylesheet rule regardless of selector
+   specificity, since author-origin rules always win over user-agent-origin
+   rules at equal importance. That silently made the `hidden` attribute a
+   no-op on any element also matched by one of those rules (validation
+   messages, the new #lead-duplicate-warning banner, conditionally shown
+   fields, etc. would stay visible even while `hidden`). This single rule
+   re-asserts `hidden` as an override of last resort, exactly matching
+   native browser behavior — it does not change what the app's JS decides
+   to hide/show, only guarantees that `hidden` itself works once JS (or the
+   initial markup) sets it. Needed now because Feature 3's duplicate
+   warning banner is the first CRM element whose correctness actually
+   depends on `hidden` reliably hiding it. */
+[hidden]{display:none!important}
+*{box-sizing:border-box}body{min-width:320px;margin:0;background:var(--canvas);color:var(--ink);font-family:var(--font-body);overflow-x:hidden}
+body:before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse 70% 55% at 12% 96%,color-mix(in srgb,var(--green) 3%,transparent),transparent 60%),radial-gradient(ellipse 55% 45% at 92% 4%,color-mix(in srgb,var(--green) 2%,transparent),transparent 55%)}
+[data-theme=dark] body:before{background:radial-gradient(ellipse 70% 55% at 12% 96%,color-mix(in srgb,var(--green) 8%,transparent),transparent 60%),radial-gradient(ellipse 55% 45% at 92% 4%,color-mix(in srgb,var(--green) 5%,transparent),transparent 55%)}
+/* CRM PERFORMANCE FIX (Sep 2026) — the ambient glow above used to be
+   `background-attachment:fixed` directly on `body`'s own background (see
+   the Global Visual System phase). PROVEN root cause of the reported
+   Dashboard/Leads scrolling jank: a real Playwright + CDP diagnostic
+   (Performance.getMetrics deltas + rAF-driven scroll FPS counting, ~1.5s
+   sustained scroll, 3 runs) measured Dashboard scroll at ~15.8fps before
+   any change, with near-zero main-thread TaskDuration/LayoutDuration —
+   i.e. the main thread was doing almost no work, which rules out layout
+   thrashing or expensive JS/style recalculation and points at the
+   compositor/paint layer instead. Isolated toggle tests (temporary
+   in-memory style overrides, never written to this file) confirmed the
+   exact cause by elimination: removing the botanical leaf image alone
+   left FPS unchanged (15.9fps — not the cause); removing every card's
+   gradient+box-shadow alone only recovered to ~20.7fps (a real but minor
+   contributor, not the dominant one); removing card transitions alone
+   left FPS unchanged (15.9fps — not the cause); but changing ONLY
+   `background-attachment` from `fixed` to `scroll` — with the exact same
+   gradient still applied — recovered FPS to a full 60.0fps on its own.
+   That isolates the true cause precisely to `background-attachment:fixed`
+   itself (a well-documented Chromium anti-pattern: the browser cannot
+   composite a fixed-attachment background as its own GPU layer the way it
+   can a genuinely `position:fixed` element, so it has to repaint the
+   background's visible region on effectively every scroll frame).
+   FIX: move the exact same two gradients off `body`'s own background and
+   onto a `body:before` pseudo-element that is truly `position:fixed`
+   (not `background-attachment:fixed`) — Chromium composites a fixed-
+   position box on its own layer, so scrolling the page underneath no
+   longer requires repainting it at all. This was verified to also
+   recover FPS to 60.0fps, WHILE keeping the glow pinned to the viewport
+   corners exactly as before (confirmed by direct screenshot comparison,
+   not assumed) — unlike simply switching `body`'s own attachment to
+   `scroll`, which recovers performance identically but would re-anchor
+   the gradient to the full document height instead of the viewport on
+   tall pages (visibly wrong on, e.g., the ~7300px-tall Leads directory).
+   Net effect: identical visual result, zero JS added, two rules changed. */button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:wait;opacity:.65}:focus-visible{outline:3px solid color-mix(in srgb,var(--green) 45%,transparent);outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.page-loader,.fatal-error{min-height:100vh;display:grid;place-content:center;gap:12px;text-align:center;color:var(--muted)}.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+/* Login */.auth-page{position:relative;isolation:isolate;min-height:100vh;display:grid;place-items:center;padding:48px 24px;overflow:hidden}.auth-page:before{content:'';position:absolute;z-index:-2;inset:0;background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--leaf) 24%,transparent),transparent 42%)}.auth-shape{position:absolute;z-index:-1;border:1px solid color-mix(in srgb,var(--green) 20%,transparent);border-radius:50%}.auth-shape-one{width:520px;height:520px;top:-340px;left:-130px}.auth-shape-two{width:380px;height:380px;right:-160px;bottom:-220px}.auth-panel{width:min(100%,430px);padding:38px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow);text-align:center}.auth-brand{height:106px;display:grid;place-items:center;margin-bottom:23px}.auth-logo{width:112px;height:112px;object-fit:contain;mix-blend-mode:multiply}[data-theme=dark] .auth-logo,[data-theme=dark] .sidebar-logo,[data-theme=dark] .mobile-logo{mix-blend-mode:screen}.eyebrow{margin:0 0 9px;color:var(--green);font-size:.69rem;font-weight:800;letter-spacing:.13em}.auth-panel h1,.page-heading h1,.modal h2{margin:0;font-family:var(--font-display);font-weight:800;letter-spacing:-.035em}.auth-panel h1{font-size:2rem}.muted{margin:9px 0 0;color:var(--muted);font-size:.94rem;line-height:1.55}.form-stack{display:grid;gap:var(--space-card-gap);margin-top:29px;text-align:left}label{display:grid;gap:7px;font-size:.83rem;font-weight:700}input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);outline:0}input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 15%,transparent)}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 14px;border:1px solid transparent;border-radius:10px;font-size:.86rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-spinner{display:inline-block;flex:0 0 auto;width:14px;height:14px;border:2px solid color-mix(in srgb,currentColor 30%,transparent);border-top-color:currentColor;border-radius:50%;animation:spin .75s linear infinite}.btn-primary{background:var(--green);color:#fff}.btn-primary:hover{filter:brightness(.92)}[data-theme=dark] .btn-primary{color:#0e1f18}.btn-secondary{border-color:var(--line);background:var(--surface);color:var(--ink)}.btn-block{width:100%}.auth-note{margin:25px 0 0;color:var(--muted);font-size:.76rem}.form-error{margin:0;color:var(--danger);font-size:.83rem;font-weight:600}.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font-size:.8rem;font-weight:700}.auth-theme-toggle{position:absolute;top:24px;right:24px}
+/* Shell */.app-shell{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:24px 16px 18px;border-right:1px solid var(--line);background:url("assets/leaf-decoration.svg") no-repeat left -10px bottom 96px/190px auto,var(--surface)}
+/* CRM GLOBAL VISUAL SYSTEM (Sep 2026) — Biosanjeevani botanical/leaf
+   watermark. FIRST INSPECTED for a reusable asset (only assets/
+   biosanjeevani-logo.png exists — no separate leaf/decorative SVG — and
+   the logo itself is off-limits to edit/extract from per an absolute
+   rule), so this is an original, simple three-leaf silhouette drawn as an
+   SVG. It shipped for a time as an inline `data:image/svg+xml;base64,...`
+   URI directly in this rule; that was moved out to a same-origin file,
+   assets/leaf-decoration.svg (CSP production-compatibility fix, Sep 2026)
+   — the production `.htaccess` sets `img-src 'self'` (no `data:`), so the
+   inline data URI was a live CSP violation once deployed. The file was
+   extracted byte-for-byte from the exact base64 payload that used to live
+   here, so the artwork itself — shape, tone, opacity, placement — is
+   unchanged; only where the bytes live changed, from inline CSS to
+   assets/leaf-decoration.svg loaded same-origin (still no external
+   request, no CDN). It is layered as a SECOND background-image on the
+   *existing* `.sidebar` rule (which already sets
+   `background:var(--surface)`) rather than as a new DOM element, so it
+   costs zero extra markup, zero layout impact, and is inherently
+   `pointer-events`-inert (a background paints behind all of a box's real
+   content and never intercepts clicks) — satisfies
+   "non-interactive/non-blocking/not part of content layout" by
+   construction, not by an added CSS override.
+   WHY THE SIDEBAR, not the page body: the sidebar is the one part of the
+   shell that is *reliably* empty in its lower portion on every single
+   page (nav items end well above `.sidebar-footer`, which is pinned to
+   the very bottom by its own `margin-top:auto`) — the main content area,
+   by contrast, is tiled edge-to-edge with cards on the dashboard with
+   little open background left to watermark. Positioning is `left -10px
+   bottom 96px` (96px cleared above the sidebar footer's account
+   card/logout button, verified against real rendered sidebar geometry so
+   it never overlaps them) — this literally IS "the lower-left portion of
+   the application shell" the brief asks for, and it never competes with
+   nav items, the logo, or any card.
+   Fill-opacity is baked into the SVG itself (0.07 fill / 0.10 stroke for
+   this light-theme version, using the light theme's own --green
+   #176b42) rather than applied as a CSS `opacity` on the whole element,
+   because `.sidebar`'s background also carries its own solid
+   `var(--surface)` colour underneath in the same declaration — an
+   element-level `opacity` would fade that too. The dark-theme override
+   directly below swaps in a second file, assets/leaf-decoration-dark.svg
+   (same paths, same position/size, extracted byte-for-byte from the
+   former dark-theme data URI the same way) at 0.11/0.16 against the
+   brighter dark-mode --green (#35d68c), since a mid-green mark needs more
+   alpha to read against a near-black surface than the same mark needs
+   against a light one — this is also the mechanism that satisfies "the
+   botanical background may be lighter/subtler in Light Mode; do not use
+   the dark decoration at the same opacity in Light Mode." */
+/* NOTE: the dark-theme leaf swap is NOT declared here — a pre-existing,
+   later, equal-specificity rule (`[data-theme=dark] .sidebar{background:
+   var(--canvas);...}`, search "Sidebar / navigation" further down this
+   file) already sets this same element's dark-mode background, and being
+   later in source order it would silently win over a duplicate declared
+   at this earlier point, leaving the light-theme leaf visible but the
+   dark-theme one invisible (caught by an actual computed-style check
+   during verification, not assumed). The dark-theme leaf is added by
+   EXTENDING that later, already-authoritative rule instead — see it for
+   the real override. */.sidebar-brand{padding:0 10px 23px;border-bottom:1px solid var(--line)}.sidebar-logo{display:block;width:172px;height:66px;object-fit:contain;object-position:left center;mix-blend-mode:multiply}.product-name{display:block;margin-top:5px;color:var(--muted);font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.side-nav{display:grid;gap:5px;margin-top:21px}.nav-item{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 11px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:.88rem;font-weight:750;text-align:left}.nav-item:hover{background:var(--surface-soft);color:var(--ink)}.nav-item.is-active{background:color-mix(in srgb,var(--green) 12%,transparent);color:var(--green)}.nav-icon{width:18px;text-align:center}.sidebar-footer{display:grid;gap:11px;margin-top:auto;padding-top:16px;border-top:1px solid var(--line)}.sidebar-theme-toggle{justify-content:flex-start}.account-card{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 3px}.account-avatar{display:grid;place-items:center;flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green);font-size:.78rem;font-weight:800}.account-card strong,.account-card small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-card strong{max-width:162px;font-size:.76rem}.account-card small{margin-top:3px;color:var(--muted);font-size:.7rem}.logout-button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:.82rem;font-weight:750;text-align:left;transition:background var(--ease),color var(--ease)}.logout-button:hover{background:var(--danger-soft);color:var(--danger)}.logout-button:focus-visible{background:var(--danger-soft);color:var(--danger)}
+/* Phase 7 — Fix 2: logout icon redesign. .nav-icon (used by the plain
+   Dashboard/Leads/Team nav items) is sized for a dense vertical list and
+   reads as too small/thin for a distinct, deliberate action like signing
+   out. .logout-icon is a dedicated, larger, more visually weighted variant
+   — same single-glyph-no-icon-library approach as the rest of the app,
+   just tuned for this one control. Used on both the desktop sidebar button
+   and the mobile icon-only header button so the two stay visually
+   consistent with each other. */
+.logout-icon{display:inline-grid;place-items:center;width:20px;font-size:1.2rem;line-height:1}.mobile-header,.mobile-nav{display:none}.main-content{width:min(100%,1400px);margin:auto;padding:44px clamp(24px,4vw,56px) 60px}.page-heading{display:flex;align-items:end;justify-content:space-between;gap:20px}.page-heading h1{font-size:clamp(2rem,3vw,2.45rem)}
+/* Content */.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-card-gap);margin:var(--space-section-lg) 0 var(--space-section)}.metric-card,.card{border:1px solid var(--line);background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.02),var(--shadow)}.metric-card{display:flex;justify-content:space-between;min-height:125px;padding:20px;border-radius:var(--radius);transition:transform var(--ease),box-shadow var(--ease)}.metric-card:hover{transform:translateY(-2px);box-shadow:0 18px 36px color-mix(in srgb,var(--forest) 14%,transparent)}.metric-card span:not(.metric-icon){color:var(--muted);font-size:.8rem;font-weight:700}.metric-card strong{display:block;margin-top:8px;font-family:var(--font-display);font-size:2rem;letter-spacing:-.04em}.metric-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--green) 18%,transparent);border:1px solid color-mix(in srgb,var(--green) 28%,transparent);color:var(--green);font-weight:800;font-size:1.05rem;line-height:1}.leads-card{overflow:hidden;border-radius:var(--radius)}.leads-card-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 22px 15px}.leads-card-header h2{margin:0;font-family:var(--font-display);font-size:1.05rem}.result-count{margin:5px 0 0;color:var(--muted);font-size:.79rem}.clear-filters{min-height:34px;padding:6px 10px;font-size:.77rem}.toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;padding:13px 22px 17px;border-bottom:1px solid var(--line)}.search{position:relative;display:block;flex:1;max-width:470px}.search>span{position:absolute;top:9px;left:12px;color:var(--muted);font-size:1.15rem}.search input{padding-left:36px}.filter-row{display:flex;flex-wrap:wrap;gap:var(--space-control-gap-tight)}.select-field{display:block}.filter-row select{min-width:145px;font-size:.81rem;font-weight:650}table{width:100%;min-width:840px;border-collapse:collapse}.table-wrap{overflow-x:auto}th,td{padding:15px 18px;border-bottom:1px solid var(--line);font-size:.84rem;text-align:left;vertical-align:middle}th{background:var(--surface-soft);color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}tbody tr:hover{background:color-mix(in srgb,var(--green) 4%,transparent)}td strong,td small{display:block}td small{margin-top:3px;color:var(--muted);font-size:.75rem}.badge,.domain-badge,.source-tag{display:inline-flex;align-items:center;gap:5px;max-width:100%;border-radius:999px;font-size:.72rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.badge{padding:5px 8px;background:color-mix(in srgb,var(--muted) 10%,transparent);color:var(--muted)}.status-new{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}.status-converted{background:color-mix(in srgb,var(--leaf) 28%,transparent);color:#477315}.status-lost{background:var(--danger-soft);color:var(--danger)}.priority-hot{background:var(--danger-soft);color:var(--danger)}.priority-warm{background:var(--warning-soft);color:var(--warning)}.priority-cold{background:var(--info-soft);color:var(--info)}.status-contacted,.status-proposal-sent{background:#e9eff8;color:#426998}.status-meeting-scheduled,.status-meeting-completed{background:#f0eaf8;color:#74549c}[data-theme=dark] .status-contacted,[data-theme=dark] .status-proposal-sent{background:#1c3447;color:#9fc0e9}[data-theme=dark] .status-meeting-scheduled,[data-theme=dark] .status-meeting-completed{background:#382d48;color:#cdb7e8}.domain-badge{padding:5px 8px;border:1px solid var(--line);background:var(--surface-soft)}.source-tag{color:var(--muted)}.source-tag span{color:var(--green);font-size:1.1rem}.actions{white-space:nowrap}.icon-button{padding:6px 7px;border:0;border-radius:7px;background:transparent;color:var(--green);font-size:.76rem;font-weight:800}.icon-button:hover{background:color-mix(in srgb,var(--green) 11%,transparent)}.icon-button.danger{color:var(--danger)}.icon-button.danger:hover{background:var(--danger-soft)}.empty-state{display:grid;justify-items:center;padding:58px 24px;color:var(--muted);text-align:center}.empty-state h3{margin:11px 0 4px;color:var(--ink);font-family:var(--font-display);font-size:1.05rem}.empty-state p{margin:0 0 17px;font-size:.85rem}.empty-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--surface-soft);color:var(--green);font-size:1.25rem}.table-loading,.table-error{padding:38px;color:var(--muted);text-align:center}.table-error{color:var(--danger)}
+/* Modal and feedback */.modal-backdrop{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:24px;background:rgba(7,25,17,.58);backdrop-filter:blur(4px)}.modal{width:min(760px,100%);max-height:90vh;overflow:auto;padding:26px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:0 24px 58px rgba(0,0,0,.28)}.modal header{display:flex;justify-content:space-between;gap:18px;margin-bottom:22px}.modal h2{font-size:1.45rem}.modal header p:last-child{margin:7px 0 0;color:var(--muted);font-size:.84rem}.modal-close{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);font-size:1.3rem}.form-section{margin:0;padding:17px 0;border:0;border-top:1px solid var(--line)}.form-section:first-of-type{padding-top:0;border-top:0}.form-section legend{font-size:.82rem;font-weight:800}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:12px}.full{grid-column:1/-1}.modal footer{display:flex;justify-content:flex-end;gap:var(--space-control-gap);margin-top:7px}.modal footer .btn{min-width:110px}.toast-region{position:fixed;z-index:40;right:20px;bottom:20px;display:grid;gap:8px;max-width:min(360px,calc(100vw - 40px))}.toast{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);font-size:.84rem;font-weight:650}.toast.error{border-color:var(--danger);color:var(--danger)}
+/* Management dashboard */.analytics-dashboard{display:grid;gap:var(--space-card-gap);margin:0 0 var(--space-section)}.analytics-grid{display:grid;gap:var(--space-card-gap)}.analytics-top{grid-template-columns:minmax(0,1.8fr) minmax(240px,.7fr)}/* FINAL BATCH — Change 4: Business Domains (4 rows) and Lead Sources (9
+   rows) sit as the two items of a single grid row here. CSS Grid's default
+   `align-items:stretch` forces BOTH items to the row's height, which is set
+   by the TALLEST one — so Business Domains' card was being stretched to
+   match Lead Sources' much longer list, which is exactly the "excessive
+   empty space" the brief flagged (its own content only needed ~4 rows of
+   height; the stretch made the card itself as tall as Lead Sources' 9).
+   `align-items:start` makes each card size to its OWN content instead —
+   content-aware height per-card, with zero effect on the data/counts
+   rendered inside either card. Deliberately scoped to just this row (not
+   `.analytics-top` two rows up, whose Conversion card relies on the
+   opposite — stretching to match Pipeline's height, via its own
+   `margin:15px 0 auto` — to look intentionally balanced rather than
+   short/empty) so nothing outside the one reported problem changes. At the
+   existing ≤899px breakpoint this grid is already forced to a single
+   column, where align-items has no visible effect either way — this change
+   only ever changes anything at the 2-column desktop/tablet width where
+   the bug actually occurs. */
+/* SECOND BATCH — Change 2 (superseded by THIRD BATCH below): tried a
+   `min-height:360px` floor on top of `align-items:start` so a short card
+   was lifted partway instead of left at its bare content height or fully
+   stretched. That closed most of the gap but still left a single visible
+   empty band below Business Domains' 4 rows once the card was taller than
+   its own content — reported as "still an awkward empty area underneath
+   Business Domains". Replaced entirely by the THIRD BATCH fix, which
+   removes the arbitrary 360px number altogether. */
+/* THIRD BATCH — Change 2 (final refinement): restores true
+   `align-items:stretch` on this row (the CSS Grid default — no property
+   needed to request it) so both cards are always exactly the same height,
+   set by whichever card's content is naturally taller (Lead Sources' 9
+   rows). This is the same stretch behaviour the FINAL BATCH Change 4
+   comment above described as buggy — but what made it look buggy back
+   then was never the equal height itself, it was that Business Domains'
+   own 4 rows just sat at the TOP of that taller box, leaving one big dead
+   band underneath them. The actual fix here is making Business Domains'
+   own row list a flex child that fills the stretched card
+   (`.analytics-breakdowns .analytics-card{display:flex;flex-direction:
+   column}` + `.breakdown-list{flex:1}`), then letting CSS Grid's
+   `align-content:space-between` spread the extra vertical room BETWEEN
+   the 4 rows instead of leaving it all in one block after the last row.
+   Net effect: Business Domains' 4 rows now start right under its heading
+   and its last row ends flush with the card's bottom padding — exactly
+   matching where Lead Sources' first and last rows sit — with the leftover
+   height distributed as a bit of extra breathing room between each
+   progress bar, not as a single obvious gap. No pixel value is hard-coded
+   anywhere in this fix; the height is always whatever Lead Sources'
+   content actually needs, so if Lead Sources ever gains or loses rows,
+   Business Domains automatically re-balances to match. Lead Sources itself
+   is unaffected: its own list already fills the row's full height with its
+   9 items, so `flex:1`/`align-content:space-between` there is a no-op —
+   nothing scrolls, clips, or resizes on that side. Scoped only to
+   `.analytics-breakdowns` cards, so the Pipeline/Conversion row above and
+   the Recent Leads/Upcoming Meetings row below (already balanced, not part
+   of this request) keep their own existing behaviour untouched. At the
+   existing ≤899px breakpoint this grid is already forced to a single
+   column (below), where each `.analytics-card` sits in its own grid row —
+   there is no taller sibling to stretch to, so the card's height stays
+   exactly its own natural content height and the flex/align-content rules
+   have nothing to distribute; Business Domains reverts to its normal
+   compact 4-row block, same as before this change. */
+.analytics-breakdowns{grid-template-columns:repeat(2,minmax(0,1fr))}
+.analytics-breakdowns .analytics-card{display:flex;flex-direction:column}
+.analytics-breakdowns .breakdown-list{flex:1;align-content:space-between}
+/* THIRD BATCH — Business Domains donut redesign. `.domain-donut-wrap` is the
+   new Business Domains card body (donut SVG + text legend), replacing the
+   `.breakdown-list` progress-bar rows it used to render — Lead Sources'
+   `.breakdown-list.source-list` two rules above is completely untouched.
+   Given `flex:1` here (same technique already used for Lead Sources' list
+   just above) so it fills the card's full stretched height, then centered
+   as one group (`align-items:center`) — a first version instead tried
+   spreading the four legend rows apart with `justify-content:space-between`
+   to fill that height edge to edge (the same technique used for Lead
+   Sources' own list), but a donut's legend rows are expected to sit near
+   their corresponding wedge; scattering them across the full card height
+   broke that visual pairing and looked disjointed on inspection, so it was
+   reverted in favour of keeping the chart and its legend together as one
+   readable block, centered in the available height — the same way the
+   Conversion card already centers its own content vertically (see
+   `.conversion-value{margin:15px 0 auto}` above) rather than stretching it
+   to fill the row. `flex-wrap:wrap` lets the donut and legend stack should
+   the card ever get too narrow for both side by side (verified this
+   actually triggers at the 390px mobile breakpoint below, once the legend's
+   own `min-width` no longer fits beside the enlarged donut). */
+/* FOURTH BATCH — donut/legend enlargement. The 136px fixed-pixel donut from
+   the THIRD BATCH read as too small against the card's real available
+   space. Replaced with `width:min(46%,250px)` — a PERCENTAGE of
+   `.domain-donut-wrap`'s own width (which is however wide the Business
+   Domains card's content area actually is at any given viewport, not a
+   single hard-coded pixel value), capped at 250px so it never balloons on
+   an unusually wide card. `aspect-ratio:1;height:auto` keeps the circle
+   perfectly round at every size the percentage resolves to — nothing here
+   distorts the ring into an oval. `.domain-legend{flex:1 1 190px}` takes
+   whatever width is left beside it, so the two halves naturally divide the
+   card within the requested ~45–55% split at typical desktop widths (46%
+   rather than an even 50/50, deliberately leaving the legend column a
+   little extra room — verified against a synthetic 356-lead/3-digit-count
+   dataset, matching the scale of the reference example, where an even
+   50/50 split still truncated a legend label like "Biogas / CBG"; 46/54
+   leaves enough room for the full label plus 3-digit counts and
+   percentages without truncating), and the split adjusts on its own if the
+   card's own width ever changes, instead of needing a new fixed-pixel
+   breakpoint every time. Because the
+   SVG's `viewBox="0 0 42 42"` maps proportionally onto whatever pixel size
+   `.donut-chart` resolves to, simply rendering the donut bigger already
+   makes the center number and its "leads" sub-label bigger in real screen
+   pixels — on top of that, `.donut-center-value`/`.donut-center-label`'s
+   own font-size (in the same viewBox units) is also increased and the
+   ring's `stroke-width` is bumped from 6 to 7 (still fully proportional to
+   the unchanged r=15.915 radius — a normal, slightly bolder donut
+   thickness, not a redrawn chart) so the center text and ring both gain
+   real visual weight, not just overall scale. Legend swatches, label,
+   count and percentage font-sizes are all increased and given more
+   `gap`/row spacing so the legend reads as a proper analytics component
+   next to the now-large chart instead of small supporting text. */
+/* CRM VISUAL REDESIGN CORRECTION (Sep 2026) — Business Domains "dead area"
+   fix. The card sits in a CSS Grid row next to the taller, 9-row Lead
+   Sources card, so Grid's default row-stretch makes it exactly as tall as
+   its sibling (unchanged, still desired — see the "THIRD BATCH" comment
+   above). The PREVIOUS donut layout then centered the donut+legend group
+   (`align-items:center;justify-content:center`) inside that stretched
+   height, which — because the group's own content is much shorter than
+   the stretched card — left large, equal empty bands above and below it.
+   Switching to a top-anchored VERTICAL stack (donut prominently on top,
+   legend rows filling downward below it, matching the approved reference's
+   composition) means the content starts right under the heading and grows
+   toward the bottom instead of floating in the middle, so the card's
+   height is actually put to use instead of read as empty space. Donut size
+   and legend-row width are scoped to this exact context
+   (`.analytics-breakdowns .domain-donut-wrap`) rather than editing the
+   shared `.donut-chart`/`.domain-legend` base rules in place, since
+   `.donut-chart` is also reused, unmodified, by the Conversion card's ring
+   (renderConversionRing in js/ui.js) via its own more-specific
+   `.conversion-ring` override — leaving the base rule alone means that
+   override keeps working exactly as before. Zero change to
+   renderDomainDonut's calculation or markup structure in js/ui.js: this is
+   layout-only. */
+.analytics-breakdowns .domain-donut-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:20px;padding-top:2px}
+.analytics-breakdowns .domain-donut-wrap .donut-chart{width:min(54%,180px)}
+.analytics-breakdowns .domain-legend{width:100%;flex:0 0 auto;min-width:0;gap:0}
+.analytics-breakdowns .domain-legend .legend-row{padding:10px 2px;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.analytics-breakdowns .domain-legend .legend-row:first-child{border-top:0;padding-top:0}
+.donut-chart{flex:0 0 auto;width:min(46%,250px);min-width:150px;aspect-ratio:1;height:auto}
+.donut-track{stroke:var(--surface-soft);stroke-width:7}
+.donut-segment{stroke-linecap:butt;stroke-width:7}
+.donut-center-value{font-family:var(--font-display);font-size:9px;font-weight:800;fill:var(--ink)}
+.donut-center-label{font-size:3.6px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;fill:var(--muted)}
+.domain-legend{display:grid;flex:1 1 190px;min-width:190px;gap:18px;margin:0;padding:0;list-style:none}
+.legend-row{display:grid;grid-template-columns:14px minmax(0,1fr) auto auto;align-items:center;gap:9px}
+.legend-swatch{width:14px;height:14px;border-radius:4px}
+.legend-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.95rem;font-weight:750}
+.legend-count{min-width:32px;color:var(--ink);font-size:1.1rem;font-weight:800;text-align:right}
+.legend-percent{min-width:36px;color:var(--muted);font-size:.85rem;font-weight:650;text-align:right}
+.analytics-bottom{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-card{min-width:0;padding:21px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}.analytics-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:var(--space-heading-gap)}.analytics-heading h2{margin:2px 0 0;font-family:var(--font-display);font-size:1.02rem;letter-spacing:-.02em}.section-kicker{margin:0;color:var(--green);font-size:.65rem;font-weight:800;letter-spacing:.12em}.analytics-heading-main{display:flex;align-items:center;gap:12px;min-width:0}.analytics-icon{display:grid;flex:0 0 auto;place-items:center;width:32px;height:32px;border-radius:var(--radius-sm);background:color-mix(in srgb,var(--green) 20%,transparent);border:1px solid color-mix(in srgb,var(--green) 30%,transparent);color:var(--green)}.analytics-icon svg{width:16px;height:16px}.analytics-note{padding:4px 8px;border-radius:999px;background:var(--surface-soft);color:var(--muted);font-size:.73rem;font-weight:750}.pipeline-list{display:grid;gap:12px}.pipeline-row{display:grid;grid-template-columns:130px minmax(0,1fr) 22px;align-items:center;gap:11px;font-size:.76rem}.pipeline-status{color:var(--muted);font-weight:700}.pipeline-row strong{font-size:.82rem;text-align:right}.progress-track{height:8px;overflow:hidden;border-radius:999px;background:var(--canvas)}.progress-fill{display:block;height:100%;min-width:0;border-radius:inherit;background:var(--green)}.pipeline-contacted{background:#5982bb}.pipeline-meeting-scheduled,.pipeline-meeting-completed{background:#8c6bbb}.pipeline-proposal-sent{background:#d59a4b}.pipeline-converted{background:#78a62b}.pipeline-lost{background:var(--danger)}.conversion-card{display:flex;flex-direction:column;min-width:0}.conversion-value{display:grid;gap:4px;margin:15px 0 auto}.conversion-value strong{font-family:var(--font-display);font-size:3.2rem;letter-spacing:-.07em;line-height:1}.conversion-value strong small{font-size:1.35rem}.conversion-value span,.conversion-detail{color:var(--muted);font-size:.78rem}.conversion-track{height:9px;margin-top:22px;overflow:hidden;border-radius:999px;background:var(--surface-soft)}.conversion-track span{display:block;height:100%;background:var(--leaf)}.conversion-detail{margin:10px 0 0}.conversion-detail strong{color:var(--ink)}.conversion-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;margin:6px 0 auto;min-width:0}.conversion-ring{width:min(58%,140px);flex:0 0 auto;aspect-ratio:1;height:auto}.conversion-ring .donut-center-value{fill:var(--green)}.conversion-stats{display:flex;justify-content:center;flex-wrap:wrap;width:100%;min-width:0;gap:8px 20px;margin:0;padding:0;list-style:none}.conversion-stats li{display:flex;align-items:center;gap:6px;min-width:0;font-size:.78rem}.conversion-stats .legend-swatch{flex:0 0 auto;width:10px;height:10px;border-radius:3px}.conversion-stats .legend-label{color:var(--muted);font-weight:700;white-space:nowrap}.conversion-stats .legend-count{flex:0 0 auto;color:var(--ink);font-family:var(--font-display);font-size:.95rem;font-weight:800}.breakdown-list{display:grid;gap:0}.breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) 32px;gap:6px 12px;align-items:center;padding:11px 2px;border-top:1px solid color-mix(in srgb,var(--line) 45%,transparent)}.breakdown-row:first-child{border-top:0;padding-top:0}.breakdown-label{display:flex;justify-content:space-between;gap:12px;min-width:0;font-size:.79rem}.breakdown-label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:750}.breakdown-label strong{color:var(--ink);font-size:.86rem;font-weight:800}.breakdown-row .progress-track{grid-column:1/2}.breakdown-row small{grid-column:2;grid-row:2;color:var(--muted);font-size:.73rem;font-weight:700;text-align:right}.progress-fill.source{background:#4f9be0}.progress-fill.domain{background:var(--green)}
+/* CRM VISUAL REDESIGN CORRECTION (Sep 2026) — Lead Sources restyle: subtle
+   row separators (border-top, first row exempted) replace the old bare
+   14px gap so rows read as a deliberate list instead of loosely floating
+   blocks; label/count typography bumped a step heavier for legibility
+   against the new darker card surface; the source progress-fill colour
+   moves from a muted #5c83ba to a brighter, more saturated #4f9be0 so
+   "active" bars have real visual weight (Business Domains' bars already
+   use the vivid --green/--leaf/--purple/--warning accent set and needed no
+   change). Purely presentational — renderBreakdownRows in js/ui.js, its
+   data, its percentages and its DOM structure are all untouched, and
+   Pipeline's own pipeline-row/pipeline-status colours are untouched too
+   (the brief asked to modernize Pipeline's presentation, not recolour it).
+   .breakdown-list's own gap is zeroed out since spacing now comes from
+   each row's own padding, keeping the first/last row flush with the
+   card's existing padding exactly as before. */.text-link{padding:0;border:0;background:transparent;color:var(--green);font-size:.76rem;font-weight:800}.text-link:hover{text-decoration:underline}.activity-list,.meeting-list{display:grid;gap:2px}.activity-item,.meeting-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.activity-item:first-child,.meeting-item:first-child{border-top:0}.activity-avatar{display:grid;place-items:center;flex:0 0 auto;width:31px;height:31px;border-radius:50%;background:color-mix(in srgb,var(--green) 20%,transparent);border:1px solid color-mix(in srgb,var(--green) 30%,transparent);color:var(--green);font-size:.76rem;font-weight:800}.activity-copy{display:grid;min-width:0;gap:3px}.activity-copy strong,.meeting-item>div strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem}.activity-copy span,.meeting-item>div span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.72rem}.activity-meta{display:grid;gap:4px;margin-left:auto;text-align:right}.activity-meta small{color:var(--muted);font-size:.68rem}.mini-domain{color:var(--ink);font-size:.68rem;font-weight:700}.meeting-item time{display:grid;place-items:center;flex:0 0 auto;width:37px;height:37px;border-radius:9px;background:color-mix(in srgb,var(--green) 16%,var(--surface-soft));border:1px solid color-mix(in srgb,var(--green) 26%,transparent);color:var(--green)}.meeting-item time strong{font-size:.82rem;line-height:1}.meeting-item time span{font-size:.61rem;font-weight:800;text-transform:uppercase}.meeting-item>div{display:grid;min-width:0;gap:3px;flex:1}.meeting-item .badge{font-size:.65rem}.dashboard-empty{display:grid;place-items:center;min-height:150px;color:var(--muted);text-align:center}.dashboard-empty span{display:grid;place-items:center;width:35px;height:35px;margin-bottom:8px;border-radius:50%;background:var(--surface-soft);color:var(--green)}.dashboard-empty p{margin:0;font-size:.8rem}
+/* FINAL BATCH — Change 5: Lead Directory table column widths. Root cause of
+   "Meeting becomes excessively vertical": the table previously had NO
+   explicit column widths at all (`table{width:100%;min-width:840px}` only,
+   no `table-layout` and no per-column sizing) — the browser's default
+   'auto' table layout sizes every column from its own content first, then,
+   once the sum exceeds the available width (routine for a 12-column table),
+   shrinks columns down with no real floor. The Meeting cell's own text
+   (`.meeting-date`, plain text — no badge/pill) had no `white-space:nowrap`
+   either, so once its column got squeezed narrow enough, a value like "24
+   Aug 2026" wrapped word-by-word into 2-3 lines, inflating that one row's
+   height ("excessively vertical"). Two independent, complementary fixes:
+   1. `.meeting-date`, `.type-tag` (Type + Assigned To columns) and the
+      badge/tag classes above (Domain/Source/Status/Priority) now all carry
+      `white-space:nowrap` + `overflow:hidden;text-overflow:ellipsis` — so
+      ordinary short values (dates, names, single/two-word labels) always
+      render on ONE line and keep every row's height consistent; only a
+      value that's genuinely too long for even a comfortably-sized column
+      truncates with an ellipsis instead of stacking vertically. Genuinely
+      long free text (Plant Location, Description) is deliberately NOT
+      touched here and keeps wrapping normally, per "allow sensible wrapping
+      only for genuinely long content".
+   2. `table-layout:fixed` + explicit per-column percentage widths (below),
+      scoped to `#leads-workspace` only (Team Management's own 2-column
+      table is untouched) — sized by hand from each column's actual
+      realistic content (the longest existing OPTIONS values / label
+      strings this codebase already defines: "Meeting Completed"/"Meeting
+      Scheduled" for Status, "Exhibition/Event" for Source, "Biofertilizer"
+      for Domain, "Partnership" for Type, "Warm Lead"/"Cold Lead" for
+      Priority, two-word names for Assigned To, "Edit"+"Delete" side-by-side
+      for Actions), rather than leaving every column an equal, one-size-
+      slice of the table. This raises the table's own min-width (from 840px
+      to 1460px, the sum of those per-column budgets) — intentional and
+      matches this project's own already-established, brief-endorsed mobile
+      strategy: `.table-wrap{overflow-x:auto}` already scrolls the table
+      horizontally within its own container below the ≤719px breakpoint's
+      card-stack layout (which this section does not touch), so no page-
+      level horizontal overflow is introduced at any width; there's simply
+      more (fully contained) horizontal scroll room on narrower desktop/
+      tablet windows than before, in exchange for every column actually
+      having enough room for its real content on wider ones. */
+#leads-workspace .table-wrap td[data-label=Meeting] small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Scoped to ≥720px deliberately: below that, the existing ≤719px block
+   further down this file already converts every td to a stacked
+   label/value grid row (`display:grid;grid-template-columns:92px
+   minmax(0,1fr)`) for the mobile card layout — an explicit percentage
+   `width` on a td would fight that block-level stacking instead of doing
+   anything useful, so these rules simply never load there. */
+@media(min-width:720px){
+  #leads-workspace .table-wrap table{table-layout:fixed;min-width:1460px}
+  #leads-workspace .table-wrap th:nth-child(1),#leads-workspace .table-wrap td:nth-child(1){width:13%}
+  #leads-workspace .table-wrap th:nth-child(2),#leads-workspace .table-wrap td:nth-child(2){width:7.5%}
+  #leads-workspace .table-wrap th:nth-child(3),#leads-workspace .table-wrap td:nth-child(3){width:6.5%}
+  #leads-workspace .table-wrap th:nth-child(4),#leads-workspace .table-wrap td:nth-child(4){width:6.5%}
+  #leads-workspace .table-wrap th:nth-child(5),#leads-workspace .table-wrap td:nth-child(5){width:9.5%}
+  #leads-workspace .table-wrap th:nth-child(6),#leads-workspace .table-wrap td:nth-child(6){width:9%}
+  #leads-workspace .table-wrap th:nth-child(7),#leads-workspace .table-wrap td:nth-child(7){width:9.5%}
+  #leads-workspace .table-wrap th:nth-child(8),#leads-workspace .table-wrap td:nth-child(8){width:8%}
+  #leads-workspace .table-wrap th:nth-child(9),#leads-workspace .table-wrap td:nth-child(9){width:6%}
+  #leads-workspace .table-wrap th:nth-child(10),#leads-workspace .table-wrap td:nth-child(10){width:9%}
+  #leads-workspace .table-wrap th:nth-child(11),#leads-workspace .table-wrap td:nth-child(11){width:7%}
+  #leads-workspace .table-wrap th:nth-child(12),#leads-workspace .table-wrap td:nth-child(12){width:8.5%}
+}
+/* Leads workspace refinements */.leads-card-header{padding-bottom:var(--space-heading-gap)}.leads-add-button{min-width:112px}.toolbar{align-items:center;background:color-mix(in srgb,var(--surface-soft) 45%,transparent)}.search input{padding-right:38px}.clear-search{position:absolute;top:5px;right:5px;width:30px;height:30px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:1.2rem;line-height:1}.clear-search:hover{background:var(--surface);color:var(--ink)}.filter-row{align-items:center}.active-filter-chips{display:flex;flex-wrap:wrap;gap:7px;padding:0 22px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface-soft) 45%,transparent)}.filter-chip{display:inline-flex;align-items:center;gap:7px;min-height:29px;padding:5px 8px 5px 10px;border:1px solid color-mix(in srgb,var(--green) 28%,var(--line));border-radius:999px;background:var(--surface);color:var(--green);font-size:.72rem;font-weight:750}.filter-chip:hover{background:color-mix(in srgb,var(--green) 10%,transparent)}.type-tag{display:inline-flex;max-width:100%;padding:4px 7px;border-radius:6px;background:var(--surface-soft);color:var(--muted);font-size:.71rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meeting-date{display:inline-block;max-width:100%;color:var(--ink);font-size:.78rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meeting-date.no-meeting{color:var(--muted);font-weight:650}.status-new:before,.status-contacted:before,.status-meeting-scheduled:before,.status-meeting-completed:before,.status-details-sent:before,.status-proposal-sent:before,.status-converted:before,.status-lost:before,.priority-hot:before,.priority-warm:before,.priority-cold:before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}.table-error{display:grid;justify-items:center;gap:7px}.table-error strong{font-family:var(--font-display);font-size:.95rem}.table-error span{font-size:.8rem}.skeleton-row td{padding:18px 22px}.skeleton-row td>span{display:inline-block;height:12px;margin-right:12px;border-radius:999px;background:linear-gradient(90deg,var(--surface-soft),color-mix(in srgb,var(--line) 65%,transparent),var(--surface-soft));background-size:200% 100%;animation:skeleton 1.4s ease infinite}.skeleton-row td>span:nth-child(1){width:28%}.skeleton-row td>span:nth-child(2){width:19%}.skeleton-row td>span:nth-child(3){width:12%}@keyframes skeleton{to{background-position:-200% 0}}
+@media(max-width:1199px){.app-shell{grid-template-columns:232px minmax(0,1fr)}.main-content{padding:36px 32px 52px}.sidebar-logo{width:160px}.metrics{gap:12px}.metric-card{padding:17px}}
+@media(max-width:899px){.app-shell{grid-template-columns:minmax(0,1fr)}.sidebar{display:none}.mobile-header{display:flex;align-items:center;justify-content:space-between;min-height:68px;padding:8px 24px;border-bottom:1px solid var(--line);background:var(--surface)}.mobile-logo{width:128px;height:50px;object-fit:contain;object-position:left center;mix-blend-mode:multiply}.mobile-header-actions{display:flex;gap:7px}.icon-only{width:38px;padding:0}.mobile-nav{display:flex;gap:5px;padding:8px 24px;border-bottom:1px solid var(--line);background:var(--surface)}.mobile-nav .nav-item{width:auto;min-height:34px;padding:6px 10px;font-size:.78rem}.main-content{padding:32px 24px 48px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{flex-direction:column}.search{max-width:none}.filter-row{display:grid;grid-template-columns:1fr 1fr}.filter-row select{width:100%;min-width:0}}
+@media(max-width:899px){.analytics-top{grid-template-columns:1fr}.analytics-breakdowns,.analytics-bottom{grid-template-columns:1fr}}
+@media(max-width:719px){.auth-page{align-items:start;padding:72px 18px 32px}.auth-panel{padding:31px 23px 26px}.auth-theme-toggle{top:16px;right:16px;width:38px;padding:0}.theme-toggle-label{display:none}.mobile-header,.mobile-nav{padding-inline:16px}.main-content{padding:26px 16px 40px}.page-heading{align-items:flex-start;flex-direction:column;gap:16px}.page-heading .btn{width:100%}.metrics{gap:var(--space-card-gap-mobile);margin:var(--space-section-lg-mobile) 0 var(--space-section-mobile)}.metric-card{min-height:103px;padding:14px}.metric-card strong{font-size:1.6rem}.metric-icon{width:29px;height:29px}.leads-card-header{align-items:flex-start;padding:18px 16px 12px}.toolbar{padding:12px 16px 15px}.filter-row{grid-template-columns:1fr 1fr}.table-wrap{overflow:visible}.table-wrap table,.table-wrap thead,.table-wrap tbody,.table-wrap tr,.table-wrap th,.table-wrap td{display:block;min-width:0}.table-wrap thead{display:none}.table-wrap tbody{display:grid;gap:10px;padding:10px}.table-wrap tr{padding:13px 12px 11px;border:1px solid var(--line);border-radius:11px}.table-wrap td{display:grid;grid-template-columns:92px minmax(0,1fr);gap:9px;padding:5px 0;border:0}.table-wrap td:before{content:attr(data-label);color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.table-wrap td:first-child{display:block;padding-bottom:9px;border-bottom:1px solid var(--line)}.table-wrap td:first-child:before,.table-wrap td.actions:before{display:none}.table-wrap td.actions{display:flex;justify-content:flex-end;gap:5px;padding-top:8px}.modal-backdrop{align-items:end;padding:0}.modal{width:100%;max-height:92vh;padding:21px 17px 22px;border-radius:18px 18px 0 0}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}.modal footer .btn{flex:1;min-width:0}.toast-region{right:12px;bottom:12px;max-width:calc(100vw - 24px)}}
+@media(max-width:719px){.leads-card-header{align-items:center}.leads-add-button{width:auto!important;min-width:auto!important}.active-filter-chips{padding:0 16px 12px}.table-wrap td.actions .icon-button{min-height:36px;padding:8px 11px}.skeleton-row td{padding:15px}.skeleton-row{border:1px solid var(--line);border-radius:10px}.skeleton-row td>span{display:block;width:100%!important;margin:7px 0}.skeleton-row td>span:nth-child(2){width:72%!important}.skeleton-row td>span:nth-child(3){width:45%!important}}
+@media(max-width:719px){.analytics-dashboard{gap:var(--space-card-gap-mobile);margin-bottom:var(--space-section-mobile)}.analytics-card{padding:17px}.pipeline-row{grid-template-columns:104px minmax(0,1fr) 18px;gap:8px;font-size:.7rem}.breakdown-list{gap:11px}.activity-meta{max-width:92px}.meeting-item{align-items:flex-start}.meeting-item .badge{display:none}.dashboard-priority{margin-top:var(--space-section-emphasis-mobile)}.domain-donut-wrap{gap:16px}.donut-chart{width:min(60%,190px);min-width:130px}.domain-legend{min-width:170px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+/* CRM visual redesign (Executive Green Command Center) — card depth. The
+   .card/.analytics-card/.metric-card/.leads-card rules earlier in this
+   file all set a flat solid `background:var(--surface)`, which read as
+   plain rectangles next to the reference's richer, gently-lit cards. This
+   rule comes later in the cascade so it safely overrides only `background`
+   and `box-shadow` on these four selectors — every other property already
+   declared for them (padding, border-radius, overflow, transitions, the
+   responsive padding overrides in the @media blocks above) is completely
+   untouched. The gradient and inset highlight use ONLY existing tokens
+   (--surface/--surface-elevated/--line/--shadow via color-mix, already used
+   extensively elsewhere in this file) so both themes pick up an
+   appropriate, theme-correct result automatically — dark theme's
+   --surface-elevated is a visibly lighter forest green than --surface, and
+   light theme's --surface-elevated (nudged from an identical #fff to a
+   barely-off-white #fbfdfb specifically for this, see :root above) gives a
+   subtle, still-crisp lift instead of a no-op flat white-on-white gradient. */
+.card,.analytics-card,.metric-card,.leads-card,.lead-modal .form-section{background:linear-gradient(165deg,color-mix(in srgb,var(--surface-elevated) 65%,var(--surface)) 0%,var(--surface) 60%);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--line) 55%,transparent),var(--shadow)}
+/* CRM VISUAL REDESIGN CORRECTION (Sep 2026) — Add/Edit Lead's .form-section
+   fieldset "cards" now share the EXACT same gradient/inset-highlight
+   technique as the dashboard's .analytics-card/.metric-card/.leads-card,
+   instead of a flat var(--surface-soft) fill (see the old .lead-modal
+   .form-section rule further below, whose background this selector now
+   overrides via normal cascade order — its border/padding/radius are
+   untouched, and every Phase 5.1.1 class/structure it depends on
+   — .form-section-heading, .label-heading, .form-grid-client, the
+   .lead-section-icon badges — is completely unchanged). This is exactly
+   what "the form surfaces should use the same new dark green surfaces,
+   green borders... as the dashboard" asked for, achieved by extending the
+   existing shared rule rather than duplicating it. */
+/* Lead form experience — CRM Phase 3: each numbered fieldset becomes its
+   own elevated card (surface-soft fill, --line border, --radius corners —
+   the same card language already used by .analytics-card/.metric-card
+   elsewhere) with an icon-led legend, instead of the old flat
+   divider-per-section list. .lead-modal form's grid `gap` now supplies the
+   spacing between cards (and above the sticky footer), replacing the old
+   per-section top-border-as-divider approach — see the card rule below,
+   which is more specific than (and therefore safely supersedes) the base
+   unscoped `.form-section`/`.form-section:first-of-type` rules earlier in
+   this file for padding/border on every fieldset here, first or not. */
+.lead-modal{padding:30px;width:min(800px,100%)}
+.lead-modal header{padding-bottom:20px;border-bottom:1px solid var(--line)}
+.lead-modal .eyebrow{margin-bottom:7px}
+.lead-modal header p:last-child{max-width:520px;line-height:1.5}
+.lead-modal form{display:grid;gap:var(--space-card-gap)}
+.lead-modal .form-section{margin:0;padding:22px 24px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-soft)}
+/* CRM Phase 5.1.1 — the visible fieldset heading used to be the <legend>
+   element itself, but a <legend>'s block-axis position is pinned by the
+   browser's own native rendering to straddle the fieldset's *border* edge,
+   completely ignoring both the fieldset's own padding AND any margin
+   authored on the legend (confirmed empirically: even `margin-top:100px
+   !important` produced zero change to its rendered position). With
+   `overflow` left at its default `visible`, that left every card's icon +
+   heading sitting flush on/above the rounded top border instead of nested
+   inside it like every other card in this app. The fix moves the *visible*
+   heading out of <legend> entirely: js/ui.js now renders a normal
+   `.form-section-heading` <div> as the fieldset's first in-flow child
+   (which — unlike <legend> — fully respects the fieldset's own 22px
+   padding, like any other ordinary child), and the accessible group name
+   that <legend> used to provide is preserved via `aria-label` on the
+   `<fieldset>` itself (screen readers announce this identically to a
+   legend). No <legend> remains in the Add/Edit Lead modal. */
+.lead-modal .form-section .form-section-heading{display:flex;align-items:center;gap:10px;color:var(--ink);font-family:var(--font-display);font-size:.92rem;font-weight:700}
+.lead-modal .form-section .form-section-heading .lead-section-icon{display:grid;flex:0 0 auto;place-items:center;width:32px;height:32px;border-radius:var(--radius-sm);background:color-mix(in srgb,var(--green) 20%,transparent);border:1px solid color-mix(in srgb,var(--green) 30%,transparent);color:var(--green)}
+.lead-modal .form-section .form-section-heading .lead-section-icon svg{width:16px;height:16px}
+.lead-modal label{position:relative;gap:7px}
+.required-indicator{margin-left:auto;color:var(--danger);font-size:.65rem;font-weight:800;text-transform:uppercase}
+/* CRM Phase 5.1.1 — replaces the 5.1 `position:absolute` badge fix. The
+   base unscoped `label{display:grid}` rule auto-places each in-flow content
+   group of a label onto its own separate grid row, and `right:0` measured
+   the badge against the *full column width* (up to 286px), which visually
+   read as "belongs to the next column" rather than "belongs to Client
+   name" even once it was on the same row. `.label-heading` (added around
+   the label text + badge in js/ui.js, in every place a required badge
+   appears) becomes label's own row-1 grid item; `justify-self:start` keeps
+   that item from stretching to the column's full width, and its internal
+   `display:flex` (default `justify-content:flex-start`) keeps the badge
+   hugging directly after the text instead of the column's far edge. */
+.lead-modal label .label-heading{display:flex;align-items:baseline;gap:6px;justify-self:start}
+.lead-modal label .label-heading .required-indicator{margin-left:0}
+/* CRM Phase 5.1.1 — Client Information grid alignment fix, replacing 5.1's
+   `fieldset:has(#lead-client-name)` scoping. Per explicit instruction not
+   to rely on :has() alone, this fieldset's .form-grid now carries its own
+   `form-grid-client` class (added in js/ui.js) so the same rule below is
+   reachable with a plain class selector — no :has() involved. Salutation/
+   Client name/Company name and Country code/Phone number/Email now share
+   one consistent 3-column rhythm (compact control column + two normal
+   field columns) instead of the nested .field-pair sub-grid creating its
+   own, narrower column boundaries. `display:contents` dissolves the
+   .field-pair wrapper (still present in the markup, unchanged, so the
+   380-719px compact-pair mobile behavior below is fully preserved) so its
+   two children become direct items of the outer .form-grid. Gated to
+   >=720px so the existing @media(max-width:719px) single-column collapse
+   and the .field-pair @media(max-width:379px) collapse are both completely
+   unaffected. */
+@media(min-width:720px){
+.lead-modal .form-grid-client{grid-template-columns:minmax(76px,max-content) 1fr 1fr}
+.lead-modal .form-grid-client .field-pair{display:contents}
+.lead-modal .form-grid-client .field-pair label{gap:7px}
+}
+.lead-modal input,.lead-modal select,.lead-modal textarea{min-height:43px;padding:11px 12px;transition:border-color var(--ease),box-shadow var(--ease)}
+.lead-modal textarea{min-height:128px;resize:vertical;line-height:1.5}
+.lead-modal label>small:not(.field-error){color:var(--muted);font-size:.71rem;font-weight:500}
+.field-error{display:block;margin-top:-2px;color:var(--danger);font-size:.71rem;font-weight:700}
+.lead-modal input:not([aria-invalid=true]):focus-visible,.lead-modal select:not([aria-invalid=true]):focus-visible,.lead-modal textarea:not([aria-invalid=true]):focus-visible{border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 16%,transparent)}
+.lead-modal [aria-invalid=true]{border-color:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 15%,transparent)}
+.lead-modal footer{position:sticky;bottom:-30px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -30px -30px;padding:16px 30px;background:var(--surface);border-top:1px solid var(--line)}
+.lead-modal footer>div{display:flex;gap:var(--space-control-gap)}
+.form-footer-note{margin:0;color:var(--muted);font-size:.73rem}
+.form-footer-note span{color:var(--danger);font-weight:800}
+.lead-modal #lead-save-button:disabled{min-width:130px}
+.lead-modal .modal-close{flex:0 0 auto}
+@media(max-width:719px){.lead-modal{padding:21px 17px 18px}.lead-modal header{margin-bottom:4px;padding-bottom:16px}.lead-modal form{gap:var(--space-card-gap-mobile)}.lead-modal .form-section{padding:16px}.lead-modal .form-section .form-section-heading{font-size:.86rem}.lead-modal footer{bottom:-18px;align-items:stretch;flex-direction:column;margin:0 -17px -18px;padding:13px 17px;background:var(--surface)}.lead-modal footer>div{display:grid;grid-template-columns:1fr 1fr}.form-footer-note{font-size:.7rem}.lead-modal textarea{min-height:112px}}
+/* Phase 5B: follow-up status badges — reuses existing badge shape and theme tokens */
+.followup-badge{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:.72rem;font-weight:750;white-space:nowrap}
+.followup-overdue{background:var(--danger-soft);color:var(--danger)}
+.followup-due-today{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}
+.followup-upcoming{background:#e9eff8;color:#426998}
+.followup-no-action{background:color-mix(in srgb,var(--muted) 10%,transparent);color:var(--muted)}
+[data-theme=dark] .followup-upcoming{background:#1c3447;color:#9fc0e9}
+.meeting-item .followup-badge{font-size:.65rem}
+/* Phase 5C: lead activity timeline (prefixed lead-activity- to avoid colliding with the unrelated .activity-item/.activity-list dashboard classes) */
+/* CRM Phase 5 — Activity History redesign: each entry becomes its own
+   bordered card row (matching the "premium rounded card" language used
+   elsewhere on the dashboard) with a colour-tinted icon marker per
+   activity_type (see js/ui.js's LEAD_ACTIVITY_TYPE_ICONS/leadActivityItemHtml
+   — the marker span's aria-hidden inner content is now one of the new
+   Phase 5 icons instead of an empty CSS-only dot), replacing the previous
+   thin connecting-line timeline. Every class here is exclusive to this
+   fieldset (see the "prefixed lead-activity-" comment above, unchanged) so
+   none of this can leak into any other part of the app. */
+.lead-activity-add{display:grid;gap:12px;margin-bottom:20px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.lead-activity-add-button{justify-self:start}
+.lead-activity-empty{margin:0;color:var(--muted);font-size:.82rem}
+.lead-activity-timeline{display:grid;gap:10px}
+.lead-activity-item{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-soft)}
+[data-theme=dark] .lead-activity-item{background:var(--surface)}
+.lead-activity-marker{display:grid;place-items:center;justify-self:center;align-self:start;width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}
+.lead-activity-marker .crm-icon{width:15px;height:15px}
+.lead-activity-body{min-width:0;display:grid;gap:4px}
+.lead-activity-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.lead-activity-top strong{font-size:.85rem}
+.lead-activity-date{color:var(--muted);font-size:.72rem;font-weight:700}
+.lead-activity-author{color:var(--green);font-size:.74rem;font-weight:700}
+.lead-activity-notes{margin:2px 0 0;color:var(--ink);font-size:.83rem;line-height:1.5;overflow-wrap:anywhere}
+.lead-activity-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}
+.lead-activity-logged{color:var(--muted);font-size:.68rem}
+.lead-activity-delete{padding:2px 6px;font-size:.68rem}
+
+/* Phase 5D: reusable confirmation modal */
+.confirm-modal{width:min(420px,100%);text-align:left}
+.confirm-modal h2{margin:0 0 10px;font-size:1.2rem}
+.confirm-modal p{margin:0 0 8px;color:var(--ink);font-size:.88rem;line-height:1.5}
+.confirm-warning{color:var(--danger);font-weight:700;font-size:.82rem}
+.confirm-actions{display:flex;justify-content:flex-end;gap:var(--space-control-gap);margin-top:20px}
+.confirm-actions .btn{min-width:110px}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{filter:brightness(.92)}
+[data-theme=dark] .btn-danger{color:#2b0a08}
+/* Phase 22: Country Code / Salutation compound fields — a small dropdown
+   sitting beside its paired input inside one .form-grid cell, reusing the
+   existing label/input/select styling (no new colors, no new control
+   shapes) rather than introducing a separate visual language. */
+/* FINAL BATCH — Change 1: both compound fields in this pair (Salutation +
+   Client name, and Country code + Phone number) share this one rule, so
+   tightening it once keeps them visually proportionate to each other by
+   construction rather than needing two near-duplicate rules kept in sync.
+   88-110px was originally sized to fit the country-code select's old closed
+   text ("+91 India"); now that its closed state shows only the short code
+   (see js/ui.js's countryCodeOptionList/setCountryCodeExpanded — Salutation
+   was never that wide to begin with), both selects only ever need to fit a
+   handful of characters ("Mr."/"+974") plus the native dropdown arrow, so
+   the old max left visible empty space after the text. Reduced to a still-
+   safe 72-88px range: fits "+971"/"+974"/"+966" (the longest codes in
+   COUNTRY_CODES) and "Miss" (the longest salutation) with normal padding,
+   without the excess width the brief flagged. */
+.field-pair{display:grid;grid-template-columns:minmax(72px,88px) 1fr;gap:8px}
+.field-pair label{gap:7px}
+@media(max-width:379px){.field-pair{grid-template-columns:1fr}}
+/* Phase 22 — Feature 3: non-blocking duplicate-lead warning banner, styled
+   as a variant of the existing .badge/.card warning language already used
+   elsewhere (warning-soft token, same radius/border as other cards) rather
+   than a new color or component style. */
+.duplicate-warning{margin-top:16px;padding:16px 18px;border:1px solid color-mix(in srgb,var(--warning) 45%,var(--line));border-radius:var(--radius);background:var(--warning-soft)}
+.duplicate-warning-title{display:flex;align-items:center;gap:8px;margin:0 0 4px;color:var(--ink);font-size:.88rem;font-weight:800}
+.duplicate-warning-title svg{width:16px;height:16px;color:var(--warning)}
+.duplicate-warning-body{margin:0 0 14px;color:var(--muted);font-size:.82rem;line-height:1.5}
+.duplicate-match{margin-top:10px;padding:14px;border:1px solid color-mix(in srgb,var(--warning) 30%,var(--line));border-radius:var(--radius-sm);background:var(--surface)}
+.duplicate-match:first-of-type{margin-top:0}
+.duplicate-match-confidence{margin:0 0 10px;color:var(--ink);font-size:.78rem;font-weight:750}
+.duplicate-match-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;margin:0 0 12px}
+.duplicate-match-details dt{color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.duplicate-match-details dd{margin:1px 0 0;color:var(--ink);font-size:.82rem;overflow-wrap:anywhere}
+.duplicate-match .view-duplicate-lead{min-height:36px;padding:7px 14px;font-size:.79rem}
+.duplicate-flag{margin-top:5px;background:var(--warning-soft);color:#8a5a10}
+[data-theme=dark] .duplicate-flag{color:var(--warning)}
+@media(max-width:479px){.duplicate-match-details{grid-template-columns:1fr}}
+
+/* Phase 5D: dashboard action-first hierarchy polish */
+/* Phase 7 — spacing bug fix: the previous 6C-4 value (margin:16px 0 28px)
+   was a one-off invented purely for this selector — 16px matched nothing
+   else in the spacing system, and because .dashboard-priority is a CSS
+   Grid item inside .analytics-dashboard, its own margin does NOT collapse
+   with the grid's own `gap` (var(--space-card-gap)) the way sibling block
+   margins collapse elsewhere. That meant the 28px bottom value silently
+   stacked with the grid gap (28+16=44px) — a different, uneven rhythm from
+   every other row boundary in this same grid, which only ever gets the
+   plain var(--space-card-gap). Fix: use the SAME two-tier token pattern
+   already established by --radius/--radius-lg (see :root) — the "before"
+   gap is var(--space-section) (28px, collapsed from .metrics' own
+   margin-bottom, the same value used for every other section-to-section
+   boundary on this page) PLUS var(--space-section-emphasis) (20px) of
+   deliberate extra emphasis on top of it as a non-collapsing grid-item
+   margin, both named/reusable tokens rather than an invented pixel value.
+   The bottom margin is removed entirely so the grid's own gap — identical
+   to every sibling row's spacing — governs the transition into the
+   pipeline/conversion cards below, restoring uniform internal rhythm. */
+.dashboard-priority{margin:var(--space-section-emphasis) 0 0}
+.dashboard-priority .section-kicker{margin:0 0 10px}
+.dashboard-priority .metrics{margin:0}
+.metric-card-action{cursor:pointer}
+.followup-meeting-item{cursor:pointer}
+.followup-meeting-item:hover{background:color-mix(in srgb,var(--green) 4%,transparent)}
+/* CRM Phase 5 — Today's Priorities: a soft per-card colour wash (was a flat
+   --surface card whose only colour cue was the existing 3px top accent
+   line, already set by the untouched `.dashboard-priority .metric-card:
+   nth-child(n):before`/`.metric-icon` rules above) so the four states read
+   with their own gentle identity at a glance, plus a slightly larger icon
+   chip for better visual weight at this card's more prominent "today's
+   priorities" position. Scoped entirely under `.dashboard-priority` — the
+   shared bare `.metric-card`/`.metric-icon` rules (also used by the KPI row
+   above) are never touched, only extended via this 2-class-specificity
+   descendant selector, matching the exact pattern the pre-existing
+   `:nth-child` colour rules already use. */
+.dashboard-priority .metric-card{align-items:center}
+.dashboard-priority .metric-card:nth-child(1){background:color-mix(in srgb,var(--warning) 7%,var(--surface))}
+.dashboard-priority .metric-card:nth-child(2){background:color-mix(in srgb,var(--danger) 7%,var(--surface))}
+.dashboard-priority .metric-card:nth-child(3){background:color-mix(in srgb,var(--info) 7%,var(--surface))}
+.dashboard-priority .metric-card:nth-child(4){background:color-mix(in srgb,var(--purple) 7%,var(--surface))}
+.dashboard-priority .metric-icon{width:40px;height:40px;border-radius:var(--radius-sm)}
+.dashboard-priority .metric-icon .crm-icon{width:20px;height:20px}
+@media(max-width:719px){
+  .dashboard-priority .metric-icon{width:30px;height:30px}
+  .dashboard-priority .metric-icon .crm-icon{width:16px;height:16px}
+}
+
+/* Phase 5D: activity timeline polish */
+.lead-activity-timeline-label{margin:0 0 8px;color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+/* CRM Phase 5: empty Activity History reads as a deliberate dashed-border
+   placeholder card (matching the rest of this app's empty-state language)
+   instead of a bare centered line of text — covers both the "no activity
+   logged yet" (edit mode) and "save this lead to start recording activity"
+   (create mode) cases, which already share this one class. */
+.lead-activity-empty{padding:28px 16px;border:1px dashed var(--line);border-radius:var(--radius-sm);background:var(--surface-soft);text-align:center}
+
+/* Phase 6C-3: Team Management — reuses .leads-card/.table-wrap/table/.badge
+   styling and the existing generic .table-wrap mobile card-conversion rules
+   (data-label based) above, so only the role select itself needs a rule.
+   Fix 6 (Phase 6C-4): a read-only viewer's role cell reuses this same
+   .badge markup already used elsewhere — no new CSS needed for that. */
+.team-role-select{min-width:150px;font-size:.82rem;font-weight:650}
+@media(max-width:719px){.team-role-select{min-width:0}}
+
+/* Phase 6C-3: Team Management — reuses .leads-card/.table-wrap/table/.badge
+   styling and the existing generic .table-wrap mobile card-conversion rules
+   (data-label based) above, so only the role select itself needs a rule.
+   Fix 6 (Phase 6C-4): a read-only viewer's role cell reuses this same
+   .badge markup already used elsewhere — no new CSS needed for that. */
+
+#team-management {
+  margin-top: var(--space-section);
+}
+
+.team-role-select {
+  min-width: 150px;
+  font-size: .82rem;
+  font-weight: 650;
+}
+
+@media(max-width:719px) {
+  .team-role-select {
+    min-width: 0;
+  }
+}
+
+/* Phase 6C-4 — Fix 1: leads table horizontal overflow. The table already
+   scrolls inside its own #leads-workspace .table-wrap (overflow-x:auto)
+   rather than the page, but reaching Edit/Delete required scrolling all
+   the way right on narrower desktop widths. Pinning the last column (the
+   Actions cell) to the scroll container's own right edge keeps it always
+   reachable, with a soft edge shadow so the overlap reads as intentional.
+   Scoped to #leads-workspace specifically so Team Management's unrelated
+   2-column table (Fix 6/9) is never affected. */
+#leads-workspace .table-wrap th:last-child,
+#leads-workspace .table-wrap td:last-child{position:sticky;right:0;background:var(--surface);box-shadow:-8px 0 8px -8px rgba(0,0,0,.12)}
+#leads-workspace .table-wrap th:last-child{background:var(--surface-soft)}
+#leads-workspace .table-wrap tbody tr:hover td:last-child{background:color-mix(in srgb,var(--green) 4%,var(--surface))}
+@media(max-width:719px){#leads-workspace .table-wrap th:last-child,#leads-workspace .table-wrap td:last-child{position:static;box-shadow:none;background:transparent}}
+
+/* Phase 6C-4 — Fix 7: password visibility toggle. Mirrors the existing
+   .search/.clear-search positioned-icon-in-field pattern above. */
+.password-field{position:relative;display:block}
+.password-field input{padding-right:44px}
+.password-toggle{position:absolute;top:50%;right:4px;transform:translateY(-50%);display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:1rem}
+.password-toggle:hover{background:var(--surface-soft);color:var(--ink)}
+
+/* Phase 8 — Change 3b: Member Edit Lead read-only sections. Reinforces the
+   native <fieldset disabled> treatment (js/ui.js openLeadModal) with an
+   explicit, theme-aware dimming so a disabled section reads clearly as
+   "read-only", not "broken" — browsers already dim disabled controls
+   somewhat by default, but inconsistently across themes, so this makes it
+   deliberate using the same tokens as the rest of the form. */
+.lead-modal fieldset:disabled{opacity:.6}
+.lead-modal fieldset:disabled .form-section-heading{color:var(--muted)}
+.lead-modal fieldset:disabled input,
+.lead-modal fieldset:disabled select,
+.lead-modal fieldset:disabled textarea{cursor:not-allowed;background:var(--surface-soft)}
+.lead-readonly-note{margin:0;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--green);border-radius:var(--radius-sm);background:var(--surface-soft);color:var(--muted);font-size:.78rem;line-height:1.5}
+
+/* =========================================================================
+   PHASE 10 — UI/UX REDESIGN. Screen-only, CSS-only, additive (per the exact
+   convention every prior phase in this file already follows — see the
+   Phase 9 banner above: "no existing rule above this point is changed").
+   Every rule below overrides an existing selector's COLOR/BORDER/SHADOW/
+   BACKGROUND/transition properties only, never a property any @media block
+   elsewhere in this file also sets (padding/gap/grid-template-columns/font-
+   size/flex-direction/display) — those are pure layout/breakpoint concerns
+   with zero color content, so this section can never fight the cascade
+   against a narrower-viewport rule the way a careless append could (a later,
+   unconditional rule can silently beat an earlier media-query rule at its
+   own breakpoint because CSS specificity ties break on source order, not on
+   which media query is "more specific").
+   Where a genuine SIZE change was wanted (radius, a few paddings called out
+   inline below) it was made either via the token block at the top of this
+   file (zero breakpoints touch --radius/--radius-lg, confirmed by grep) or
+   as a direct in-place edit to the one original rule, never appended here.
+   Nothing in this section touches @media print below — that block is
+   completely self-contained on its own --pd-* custom properties (see its
+   own header comment) and none of the selectors below share a name with
+   any .print-doc-* selector, so the printed quotation/tax invoice is
+   provably unaffected by anything in this section. */
+
+/* ---- Buttons: stronger primary, softer secondary, all with a deliberate
+   lift+glow on hover/focus and a real disabled state (150-250ms range). ---- */
+.btn{border-radius:var(--radius-sm);transition:transform var(--ease),box-shadow var(--ease),background var(--ease),border-color var(--ease),filter var(--ease)}
+.btn-primary{background:var(--gradient-brand);box-shadow:0 8px 20px color-mix(in srgb,var(--green) 35%,#4CAF50)}
+.btn-primary:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 12px 26px color-mix(in srgb,var(--green) 45%,transparent)}
+.btn-primary:active:not(:disabled){transform:translateY(0);filter:brightness(.97)}
+.btn-secondary{background:var(--surface);box-shadow:none}
+.btn-secondary:hover:not(:disabled){border-color:color-mix(in srgb,var(--green) 40%,var(--line));background:var(--surface-elevated);color:var(--ink)}
+.btn-danger{box-shadow:0 8px 20px color-mix(in srgb,var(--danger) 30%,transparent)}
+.btn-danger:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 26px color-mix(in srgb,var(--danger) 40%,transparent)}
+.btn:disabled{transform:none!important;box-shadow:none!important}
+.icon-button{border-radius:var(--radius-sm);transition:background var(--ease),color var(--ease)}
+.theme-toggle{transition:border-color var(--ease),background var(--ease)}
+.theme-toggle:hover{border-color:color-mix(in srgb,var(--green) 35%,var(--line));background:var(--surface-elevated)}
+
+/* ---- Inputs: dark-aware surface, clearer focus ---- */
+input,select,textarea{background:var(--surface);border-radius:var(--radius-sm);transition:border-color var(--ease),box-shadow var(--ease)}
+[data-theme=dark] input,[data-theme=dark] select,[data-theme=dark] textarea{background:var(--surface-elevated)}
+
+/* ---- Cards: three-tier depth (canvas < surface < elevated-on-hover),
+   accent top edge, real border-radius everywhere. .metric-card/.card share
+   the base; .analytics-card/.leads-card opt in via the same var(--radius). ---- */
+/* CRM VISUAL REDESIGN CORRECTION (Sep 2026) — card borders bumped from a
+   80%-diluted var(--line) to a near-full-strength 96%. At the OLD, barely-
+   saturated dark-theme --line (#213a2e) an 80% dilution against the card
+   background made the border read as almost invisible — one of the
+   concrete "cards aren't visibly distinguishable" complaints. The new
+   --line (#1c4a36, set above) is a real, visible green on its own, so
+   keeping it at close to full strength is what actually makes card edges
+   read as a deliberate border rather than a soft vignette. Still not
+   literally 100% so a hairline anti-aliasing softness is preserved at
+   corners, matching the "subtle border" (not a hard outline) requirement. */
+.metric-card,.card{border-radius:var(--radius);border-color:color-mix(in srgb,var(--line) 96%,transparent);transition:transform var(--ease),box-shadow var(--ease),border-color var(--ease),background var(--ease)}
+.metric-card{position:relative;overflow:hidden;border-radius:var(--radius)}
+.metric-card:before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--line);opacity:.6}
+.metric-card:hover{border-color:color-mix(in srgb,var(--green) 30%,var(--line));box-shadow:var(--shadow-elevated)}
+[data-theme=dark] .metric-card:hover,[data-theme=dark] .analytics-card:hover{background:var(--surface-elevated)}
+.metric-icon{border-radius:var(--radius-sm)}
+.analytics-card{border-radius:var(--radius);border-color:color-mix(in srgb,var(--line) 96%,transparent);transition:border-color var(--ease),background var(--ease),box-shadow var(--ease)}
+.analytics-card:hover{border-color:color-mix(in srgb,var(--green) 22%,var(--line))}
+.leads-card{border-color:color-mix(in srgb,var(--line) 96%,transparent)}
+
+/* Metric-card accent colours — "differentiated metric accents", scoped per
+   grid via existing aria-label/class hooks already in the markup (no HTML
+   change needed: js/ui.js's Lead-summary <section> already carries
+   aria-label="Lead summary", js/ui.js's priority grid already has the
+   .dashboard-priority ancestor class — both grids render a FIXED,
+   unconditional 4-card order every time, confirmed by reading both render
+   functions, so nth-child position reliably maps to the same metric every
+   render). Position 2 is left at the base green rule intentionally (no
+   override) rather than repeating it. */
+.metrics[aria-label="Lead summary"] .metric-card:nth-child(1):before{background:var(--info)}
+.metrics[aria-label="Lead summary"] .metric-card:nth-child(1) .metric-icon{background:color-mix(in srgb,var(--info) 16%,transparent);color:var(--info)}
+.metrics[aria-label="Lead summary"] .metric-card:nth-child(3):before{background:var(--warning)}
+.metrics[aria-label="Lead summary"] .metric-card:nth-child(3) .metric-icon{background:color-mix(in srgb,var(--warning) 16%,transparent);color:var(--warning)}
+.metrics[aria-label="Lead summary"] .metric-card:nth-child(4):before,
+.dashboard-priority .metric-card:nth-child(4):before{background:var(--purple)}
+.metrics[aria-label="Lead summary"] .metric-card:nth-child(4) .metric-icon,
+.dashboard-priority .metric-card:nth-child(4) .metric-icon{background:color-mix(in srgb,var(--purple) 16%,transparent);color:var(--purple)}
+.dashboard-priority .metric-card:nth-child(1):before{background:var(--warning)}
+.dashboard-priority .metric-card:nth-child(1) .metric-icon{background:color-mix(in srgb,var(--warning) 16%,transparent);color:var(--warning)}
+.dashboard-priority .metric-card:nth-child(2):before{background:var(--danger)}
+.dashboard-priority .metric-card:nth-child(2) .metric-icon{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.dashboard-priority .metric-card:nth-child(3):before{background:var(--info)}
+.dashboard-priority .metric-card:nth-child(3) .metric-icon{background:color-mix(in srgb,var(--info) 16%,transparent);color:var(--info)}
+
+/* ---- Status badges: one consistent pill language (dot + tint + text),
+   reusing the SAME semantic tokens across lead status, invoice status, and
+   follow-up badges — replaces several one-off hex pairs (the old
+   .status-contacted/.status-proposal-sent blue, .status-meeting-scheduled/
+   .status-meeting-completed purple, .invoice-status-partial amber, and
+   their separate [data-theme=dark] hex overrides) with var(--info)/
+   var(--purple)/var(--warning) so there's one source of truth per colour
+   instead of four near-duplicate hardcoded values. Dot indicator (already
+   used by lead statuses via ::before) extended to invoice statuses too, so
+   every status pill in the app now shares the same visual construction. ---- */
+.badge,.followup-badge{border-radius:999px;transition:background var(--ease)}
+/* .status-converted originally hardcoded color:#477315 (a dark olive tuned
+   for light-mode contrast on a pale --leaf-tinted background) with no
+   [data-theme=dark] override anywhere in the file — on the new, much
+   darker canvas this reads as dim/washed out (caught via real-browser
+   screenshot review, not just code reading). var(--green) is already
+   theme-aware (dark forest text on light bg, vivid emerald on dark bg) and
+   IS the "success/converted" token per the brief's own colour table, so
+   swapping to it fixes contrast in both themes and removes another
+   one-off hex in favour of the shared token. */
+.status-converted{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+.status-contacted,.status-proposal-sent{background:var(--info-soft);color:var(--info)}
+.status-meeting-scheduled,.status-meeting-completed{background:var(--purple-soft);color:var(--purple)}
+/* FINAL BATCH — Change 6: 'Details Sent' badge. --warning/--warning-soft
+   are an existing, already dark-theme-aware token pair (see :root and its
+   [data-theme=dark] override far above) not currently used by any OTHER
+   lead status badge — New/Converted already share --green, Contacted/
+   Proposal Sent already share --info, Meeting Scheduled/Completed already
+   share --purple (all pre-existing, intentional reuse in this codebase),
+   so reusing --warning here keeps the new status visually distinct from
+   every other one while still drawing from the existing token set rather
+   than inventing a new color. */
+.status-details-sent{background:var(--warning-soft);color:var(--warning)}
+.followup-upcoming{background:var(--info-soft);color:var(--info)}
+
+/* ---- Tables: clearer header, softer row hover, transitions ---- */
+th{border-bottom:1px solid var(--line)}
+tbody tr{transition:background var(--ease)}
+[data-theme=dark] tbody tr:hover{background:var(--surface-elevated)}
+
+/* ---- Empty states: icon container gets a soft brand-tinted ring instead
+   of a flat circle, per "empty states should look intentional" ---- */
+.empty-icon{background:color-mix(in srgb,var(--green) 12%,var(--surface-soft));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--green) 18%,transparent)}
+.dashboard-empty span{background:color-mix(in srgb,var(--green) 12%,var(--surface-soft));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--green) 18%,transparent)}
+
+/* ---- Sidebar / navigation: left accent bar on the active item (via
+   box-shadow so no layout shift), warmer hover, icon treatment ---- */
+/* CRM GLOBAL VISUAL SYSTEM (Sep 2026) — dark-theme half of the sidebar
+   botanical watermark (see the base `.sidebar` rule in the Shell section
+   above, which carries the light-theme version and the full rationale).
+   This rule already won the cascade for the sidebar's dark background
+   before this change (same selector, unchanged specificity) — it keeps
+   deliberately matching --canvas rather than --surface here (an earlier,
+   intentional Phase 10 choice: the sidebar recedes flush with the page in
+   dark mode instead of reading as its own card), so the leaf is layered
+   on top of --canvas, not --surface, on this theme. Same artwork as the
+   light version, in its own file (assets/leaf-decoration-dark.svg — see
+   that rule's comment above for why this is a same-origin file rather
+   than an inline data URI) with the dark-mode --green (#35d68c) baked in
+   at a higher 0.11 fill / 0.16 stroke opacity — a mid-green mark needs
+   more alpha to read against this near-black surface than the same mark
+   needs against the light theme's white one. */
+[data-theme=dark] .sidebar{background:url("assets/leaf-decoration-dark.svg") no-repeat left -10px bottom 96px/190px auto,var(--canvas);border-right-color:var(--line)}
+@media(max-width:1199px){.sidebar{background-size:150px auto;background-position:left -8px bottom 88px}[data-theme=dark] .sidebar{background-size:150px auto;background-position:left -8px bottom 88px}}
+/* The rule above must stay AFTER both the light-theme base `.sidebar` rule
+   and the dark-theme `[data-theme=dark] .sidebar` rule (both earlier in
+   this file) — same specificity as each in turn, later source order, so
+   it correctly wins the cascade for background-size/position at this
+   breakpoint on both themes without needing to repeat the full background
+   shorthand (and therefore without re-declaring the image/colour). */
+.nav-item{border-radius:var(--radius-sm);transition:background var(--ease),color var(--ease),box-shadow var(--ease)}
+.nav-item:hover{background:color-mix(in srgb,var(--green) 8%,transparent)}
+.nav-item.is-active{background:color-mix(in srgb,var(--green) 14%,transparent);box-shadow:inset 3px 0 0 var(--green);font-weight:800}
+.nav-icon{opacity:.85}
+.nav-item.is-active .nav-icon{opacity:1}
+.account-avatar{border-radius:var(--radius-sm)}
+.logout-button{border-radius:var(--radius-sm)}
+[data-theme=dark] .mobile-header,[data-theme=dark] .mobile-nav{background:var(--canvas)}
+.mobile-nav .nav-item.is-active{box-shadow:inset 0 -3px 0 var(--green)}
+
+/* ---- Auth page: elevated card on dark (gradient text was tried on
+   .eyebrow here and deliberately reverted — that class is reused as a
+   small uppercase kicker in a dozen places app-wide including tiny .82rem
+   modal headers, where a gradient clip reads muddy rather than premium;
+   plain var(--green) is legible everywhere and stays as-is). ---- */
+.auth-panel{border-radius:var(--radius-lg)}
+[data-theme=dark] .auth-panel{background:var(--surface-elevated)}
+
+/* ---- Page heading: stronger hierarchy ---- */
+.page-heading h1{font-weight:800;letter-spacing:-.04em}
+.eyebrow{font-weight:800}
+
+/* ---- Pipeline / conversion visualisation: thicker tracks, subtle glow on
+   the active fill, dot markers reused from the badge language above ---- */
+.progress-track{height:9px;background:color-mix(in srgb,var(--line) 55%,transparent)}
+[data-theme=dark] .progress-track{background:var(--surface-soft)}
+.progress-fill{transition:width var(--ease-slow)}
+.pipeline-contacted{background:var(--info)}
+.pipeline-meeting-scheduled,.pipeline-meeting-completed{background:var(--purple)}
+/* FINAL BATCH — Change 6: without this rule, a 'Details Sent' pipeline row
+   would fall through to `.progress-fill`'s own base `background:var(--green)`
+   — REGRESSION RISK if left out: that's the exact same fill color
+   `.pipeline-converted` already uses below, so the two stages' bars would
+   have rendered visually identical in this chart. --leaf is an existing,
+   already dark-theme-aware token not used by any other pipeline-stage bar
+   (Converted uses the vivid brand --green, not --leaf), so it reads as its
+   own distinct stage color while still coming from the existing palette. */
+.pipeline-details-sent{background:var(--leaf)}
+.pipeline-proposal-sent{background:var(--warning)}
+.pipeline-converted{background:var(--green)}
+.conversion-value strong{background:var(--gradient-brand);background-clip:text;-webkit-background-clip:text;color:transparent}
+.conversion-track{height:11px}
+.meeting-item time{border-radius:var(--radius-sm)}
+.activity-avatar{border-radius:var(--radius-sm)}
+.activity-item,.meeting-item,.followup-meeting-item{border-radius:var(--radius-sm);transition:background var(--ease)}
+.followup-meeting-item:hover{background:color-mix(in srgb,var(--green) 6%,transparent)}
+
+/* ---- Modal: elevated surface distinct from page cards ---- */
+.modal{background:var(--surface-elevated);border-radius:var(--radius-lg)}
+.modal-close{border-radius:var(--radius-sm);transition:background var(--ease),color var(--ease)}
+.modal-close:hover{background:var(--surface-soft);color:var(--ink)}
+
+/* ---- Toast: elevated surface + accent left edge ---- */
+.toast{background:var(--surface-elevated);border-radius:var(--radius-sm);box-shadow:var(--shadow-elevated);box-shadow:var(--shadow-elevated),inset 3px 0 0 var(--green)}
+.toast.error{box-shadow:var(--shadow-elevated),inset 3px 0 0 var(--danger)}
+
+/* ---- Filter chips / active-filter-chips: pill polish ---- */
+.filter-chip{transition:background var(--ease),border-color var(--ease)}
+
+/* ---- Skeleton loading: theme-aware shimmer already uses tokens, just
+   round it to match the new radius language ---- */
+.skeleton-row td>span{border-radius:999px}
+
+/* =====================================================================
+   PHASE 10.1 — LOADING SCREEN REDESIGN (manual-test brief, Aug 2026).
+   Additive, screen-only. .loading-screen is a new class added alongside
+   the existing .page-loader on the two loading-state <section> elements
+   (index.html's static pre-JS markup, and js/app.js's renderAuthLoading()
+   template) — the base .page-loader,.fatal-error{...} rule and .spinner
+   above are UNCHANGED, so .fatal-error (the real error state) is entirely
+   unaffected, and nothing else in the app that might reference
+   .page-loader loses anything.
+
+   Design decision — always dark, regardless of the user's chosen theme:
+   the one approved reference is a dark forest-green splash design, and the
+   brief describes "the same visual language as the newly deployed Phase 10
+   CRM" as a single fixed identity, the way most apps show one fixed-brand
+   splash regardless of theme preference. Reading the live tokens here
+   would mean light-theme users see a pale, washed-out screen that doesn't
+   match the reference at all for the one moment brand-consistency matters
+   most (first paint). Rather than invent new colors, --ld-* below are set
+   to the exact same values as [data-theme=dark]'s real tokens above — this
+   is the established dark palette, just always-on for this one screen. ===================================================================== */
+.loading-screen{
+  --ld-canvas:#0a1712;--ld-forest:#0a2b1c;--ld-green:#35d68c;--ld-green-dim:#1c8f5c;
+  --ld-surface-elevated:#17291f;--ld-line:#213a2e;--ld-ink:#eaf3ee;--ld-muted:#8fa89c;
+  position:relative;overflow:hidden;isolation:isolate;gap:0;justify-items:center;padding:32px 20px;
+  color:var(--ld-muted);
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 34%,color-mix(in srgb,var(--ld-green) 14%,transparent),transparent 70%),
+    linear-gradient(175deg,var(--ld-canvas) 0%,var(--ld-forest) 130%);
+}
+.loading-screen>*{position:relative;z-index:1}
+.loading-scene{position:relative;width:clamp(150px,30vw,220px);height:clamp(150px,30vw,220px);display:grid;place-items:center;margin-bottom:clamp(14px,3vw,22px);pointer-events:none}
+.loading-ring{position:absolute;inset:0;border-radius:50%;border:1px solid color-mix(in srgb,var(--ld-green) 22%,transparent);animation:loading-spin 40s linear infinite}
+.loading-ring-inner{inset:15%;border-color:color-mix(in srgb,var(--ld-green) 16%,transparent);animation-duration:30s;animation-direction:reverse}
+.loading-dot{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--ld-green);box-shadow:0 0 10px 2px color-mix(in srgb,var(--ld-green) 70%,transparent);animation:loading-spin 40s linear infinite}
+.loading-dot-1{top:-3px;left:50%;margin-left:-3px}
+.loading-dot-2{top:50%;right:-3px;margin-top:-3px;animation-duration:30s;animation-direction:reverse;opacity:.7}
+.loading-dot-3{bottom:8%;left:8%;opacity:.55;animation-duration:55s}
+.loading-dot-4{top:12%;right:14%;opacity:.5;animation-duration:48s;animation-direction:reverse}
+@keyframes loading-spin{to{transform:rotate(360deg)}}
+.loading-mark{width:clamp(64px,14vw,86px);height:clamp(64px,14vw,86px);border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--ld-surface-elevated) 88%,transparent);border:1px solid var(--ld-line);box-shadow:0 0 34px color-mix(in srgb,var(--ld-green) 30%,transparent)}
+.loading-leaf{position:relative;width:34%;height:34%}
+.loading-leaf span{position:absolute;inset:0;background:linear-gradient(135deg,var(--ld-green),var(--ld-green-dim));border-radius:0 100% 100% 100%}
+.loading-leaf span:first-child{transform:rotate(-38deg)}
+.loading-leaf span:last-child{transform:rotate(52deg) scale(.82);opacity:.85}
+.loading-brand{margin:0;font-family:var(--font-display);font-weight:800;font-size:clamp(1.35rem,4.4vw,1.9rem);color:var(--ld-ink);letter-spacing:-.02em}
+.loading-brand span{color:var(--ld-green)}
+.loading-tagline{margin:6px 0 0;font-size:.9rem;color:var(--ld-muted)}
+.loading-bar{margin-top:clamp(22px,5vw,32px);width:min(280px,70vw);height:5px;border-radius:999px;background:color-mix(in srgb,var(--ld-line) 70%,transparent);overflow:hidden;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ld-green) 10%,transparent)}
+.loading-bar-fill{display:block;width:38%;height:100%;border-radius:inherit;background:linear-gradient(90deg,transparent,var(--ld-green),transparent);box-shadow:0 0 12px color-mix(in srgb,var(--ld-green) 60%,transparent);animation:loading-bar-sweep 1.6s ease-in-out infinite}
+@keyframes loading-bar-sweep{0%{transform:translateX(-110%)}100%{transform:translateX(340%)}}
+.loading-status{margin:12px 0 0;font-size:.82rem;color:var(--ld-muted);animation:loading-pulse 2.4s ease-in-out infinite}
+@keyframes loading-pulse{0%,100%{opacity:.7}50%{opacity:1}}
+/* gap-based spacing rather than per-item borders — a border-left divider
+   would leave a stray, disconnected line fragment above any item that
+   wraps to its own row at narrow widths (verified at 320px), so each item
+   is its own small pill instead; this reads cleanly whether the row stays
+   in one line or wraps. */
+.loading-features{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin:clamp(26px,6vw,36px) 0 0;padding:8px;border:1px solid var(--ld-line);border-radius:var(--radius-lg);background:color-mix(in srgb,var(--ld-surface-elevated) 55%,transparent);max-width:min(360px,88vw)}
+.loading-features li{display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:.78rem;font-weight:700;color:var(--ld-ink);border-radius:999px;background:color-mix(in srgb,var(--ld-canvas) 35%,transparent)}
+.loading-feature-icon{font-size:.95rem;color:var(--ld-green)}
+.loading-footer{margin:clamp(18px,4vw,26px) 0 0;font-size:.72rem;color:color-mix(in srgb,var(--ld-muted) 75%,transparent)}
+@media (prefers-reduced-motion:reduce){
+  .loading-ring,.loading-dot,.loading-bar-fill,.loading-status{animation:none!important}
+  .loading-bar-fill{width:60%;transform:none;opacity:.8}
+}
+
+/* Mobile nav overflow fix (found during Phase 11 responsive verification,
+   real Playwright pass at 320/375/390px — not a hypothetical). Adding the
+   5th item ("Quotations") to .mobile-nav pushed its five single-word,
+   unbreakable-text buttons (Dashboard/Leads/Quotations/Invoices/Team) to a
+   combined ~401px minimum content width — wider than the 320px viewport
+   Phase 10 was already verified against, with the previous 4 items.
+   Two contributing causes, both fixed:
+   1. ROOT CAUSE: the mobile single-column grid track at max-width:899px
+      (`.app-shell{grid-template-columns:1fr}`, a few lines above this
+      section) was missing the `minmax(0,...)` guard the desktop two-column
+      rule already has one line above IT. A bare `1fr` track's automatic
+      minimum is its content's min-content size, not 0 — so with 401px of
+      unbreakable nav text inside it, the whole single-column layout refused
+      to shrink below 401px regardless of viewport width, dragging the
+      entire page into horizontal overflow (confirmed by measuring
+      .mobile-nav's own clientWidth reported as 401px even at a 320px
+      viewport, before this fix). Changed that rule to
+      `grid-template-columns:minmax(0,1fr)`, mirroring the desktop rule's
+      already-correct pattern — this is the standard fix for CSS Grid's
+      well-known "blowout" behavior, and only ever constrains size that was
+      already trying to overflow; it changes nothing when content fits.
+   2. BELT AND SUSPENDERS: even with the grid fixed, flexbox still can't
+      shrink a single-word button's text below its own min-content width —
+      it would just move the same 401px-vs-320px mismatch from the page
+      level to the nav row itself. Rather than shrinking/wrapping the
+      labels, the row now scrolls horizontally within itself (a standard,
+      expected mobile tab-bar pattern) via overflow-x:auto + hidden
+      scrollbar; flex:0 0 auto keeps every button at its natural, readable
+      width instead of flexbox fighting text that can't wrap.
+   Both scoped to the same max-width:899px range this layout already only
+   applies in — zero effect on desktop, which was never affected
+   (.side-nav's items stack vertically, one per row, not in a single row). */
+@media(max-width:899px){
+  .mobile-nav{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .mobile-nav::-webkit-scrollbar{display:none}
+  .mobile-nav .nav-item{flex:0 0 auto}
+}
+
+/* ==========================================================================
+   PHASE 12 — UI SPACING & MOBILE UX POLISH (manual-test brief, Aug 2026).
+   Visual/spacing/responsive refinement ONLY — per this project's established
+   phase-additive CSS convention (see the PHASE 10/11 section banners
+   above), nothing below touches business logic, and every existing
+   selector's color/content/structural behavior from Phase 6-11 is left
+   exactly as-is except the two small in-place value edits noted where they
+   happened (search "PHASE 12 in-place edit" elsewhere in this file):
+   `.filter-row{grid-template-columns:1fr}` at the existing 719px breakpoint
+   became `1fr 1fr` (Requirement 5), and `#team-management{margin-top:20px}`
+   became `margin-top:var(--space-section)` (Requirement 1 — replacing an
+   old one-off invented pixel value with the same token every other major
+   section boundary already uses, exactly the "spacing bug fix" precedent
+   already set by the #invoices-workspace comment above). Nothing else in
+   this file was edited in place; everything else needed is additive, below.
+
+   Every gap value below reuses an EXISTING token from :root's spacing
+   system (--space-section/--space-section-mobile/--space-control-gap/
+   --space-control-gap-tight) — no new spacing variable was invented. Real
+   Playwright/Chromium measurements (not visual guesswork) at all 9 required
+   widths (320/375/390/430/768/820/900/1024/1440) drove every decision
+   below; see the Phase 12 report for the full before/after pixel tables.
+   Two requirements turned out to already be satisfied by the EXISTING
+   Phase 10/11 CSS with zero change needed — documented here rather than
+   changed for the sake of changing something:
+     - Req 2 (metric-card horizontal spacing): `.quotation-summary-metrics`/
+       `.invoice-summary-metrics` already carry the base `.metrics` class,
+       which already sets `gap:var(--space-card-gap)` (and the existing
+       719px/1199px breakpoints already scale it to 10px/12px/16px). Measured
+       10px at 320-430px, 12px at 768-1199px (an intentional tighter Phase 10
+       tablet value, not a bug), 16px at 1440px — never 0, never touching, at
+       any of the 9 widths. No change made.
+     - The general `.filter-row` gap (`--space-control-gap-tight`, 8px) was
+       already present at every width for the visible-controls case (the
+       "[All statuses][Clear filters]" example) — the ACTUAL bug there was
+       the single-column stacking at ≤719px fixed by the in-place edit above
+       (Req 5), not a missing gap.
+   ========================================================================= */
+
+/* ---- Requirement 1: major section spacing — #team-management already had
+   SOME margin (just an inconsistent invented 20px, now fixed in place
+   above, replaced with the shared --space-section token); this 719px
+   companion completes that token switch the same way every other section
+   boundary already works. ---- */
+@media(max-width:719px){
+  #team-management{margin-top:var(--space-section-mobile)}
+}
+
+/* ---- Requirement 3: global button spacing — a REAL, measured "buttons
+   touching" bug found (not the `.filter-row`/`.metrics` cases, which
+   already had gaps — see the banner comment above):
+
+   `.table-wrap td.actions` (the row-level Edit/Delete icon-button group)
+   only ever got `display:flex;gap:5px` inside the EXISTING 719px mobile
+   card-row block below — outside that block, on desktop and tablet, the
+   cell was plain inline flow with no flex/gap at all, so the icon-buttons
+   rendered with a measured 0px gap between them (confirmed at
+   768/820/900/1024/1440px).
+
+   PHASE 12.1 CORRECTION: the original Phase 12 fix here set
+   `display:flex` directly on the `<td>` itself (guarded to
+   `min-width:720px` so it could never fire alongside the existing
+   719px mobile block, which already blockifies the whole table and
+   makes flex safe there). That part was fine in isolation, but real
+   Playwright verification during the 12.1 pass found it broke the
+   Leads table's horizontal containment at tablet widths (measured at
+   768/820px): giving a `<td>` an explicit `display:flex` while its
+   `<table>/<tr>` siblings are still real table-layout boxes made
+   Chromium paint that cell's content outside `.table-wrap`'s own
+   `overflow-x:auto` clip — the actions column visibly spilled past
+   the rounded white card's right edge onto the page background
+   instead of scrolling inside it (confirmed by toggling the rule off
+   in isolation: the moment `<td class="actions">` stops being
+   `display:flex` and goes back to its native `table-cell` display,
+   `.table-wrap`'s existing overflow-x:auto clip contains it exactly
+   as it always did for every other column). Desktop (1440px) never
+   revealed this because its table happens to fit without needing
+   the scroll clip at all — the bug was there regardless, just
+   invisible until something needed clipping.
+
+   Fixed by dropping `display:flex` entirely and using an adjacent-
+   sibling margin instead (`.icon-button + .icon-button{margin-left:
+   ...}`) — same visual gap between the buttons, zero risk to the
+   cell's table-layout participation since the `<td>`'s `display`
+   is never touched. Still scoped to `min-width:720px` for the same
+   cascade-safety reason as before. ---- */
+@media(min-width:720px){
+  .table-wrap td.actions .icon-button+.icon-button{margin-left:var(--space-control-gap-tight)}
+}
+
+/* ---- Requirement 5: mobile Leads filter layout — the in-place edit above
+   changed the EXISTING 719px `.filter-row` rule from a single `1fr` column
+   to `1fr 1fr`, which (combined with the unconditional `.filter-row{gap:
+   var(--space-control-gap-tight)}` base rule already in this file) turns
+   the previous 6-row vertical stack (search / status / domain / assignee /
+   follow-up / clear, each its own full-width row) into the brief's
+   requested compact grid: search stays full width (it lives in `.toolbar`,
+   outside `.filter-row`, untouched), then status/domain/assignee/follow-up
+   pair up two-per-row, with Clear filters as its own final row — EXCEPT
+   Clear filters would otherwise land alone in the grid's first column
+   (an odd 5th item in a 2-column grid), which is the one place the plain
+   `1fr 1fr` change doesn't yet match the brief's target layout (Clear
+   filters spanning full width). Scoped to `#clear-filters` specifically
+   (Leads' own unique id — Quotations/Invoices use their own differently-
+   named ids, `#quotation-clear-filters`/`#invoice-clear-filters`, and are
+   deliberately NOT touched here: their filter-row only ever has 2 items,
+   status + clear, so the plain 2-column grid already lays them out exactly
+   like the brief's own "[All statuses] [Clear filters]" example with zero
+   extra rule needed) so only Leads' 5-item row gets the extra full-width
+   span; Quotations/Invoices keep their already-correct 2-up pairing. ---- */
+@media(max-width:719px){
+  #leads-workspace .filter-row #clear-filters{grid-column:1/-1}
+}
+
+/* ---- Requirement 4: mobile Dashboard Leads sticky header. Scoped to
+   `#leads-workspace .leads-card-header` specifically — NOT the bare
+   `.leads-card-header` class, which Quotations/Invoices/Team also use for
+   their own headers and must NOT receive this behavior (only Leads was
+   asked for). Compact by construction: only the header row itself (title +
+   result count + Add lead button) becomes sticky, not the toolbar, filters,
+   or table beneath it — "Do NOT make the entire Leads content permanently
+   fixed" is satisfied by scoping the sticky rule to this one child element,
+   not by any extra show/hide logic.
+
+   THE STRUCTURAL FIX the brief explicitly warned might be needed ("position:
+   sticky can fail when an ancestor has certain overflow behavior. Fix the
+   actual structural cause if required") turned out to be real, not
+   hypothetical: `.leads-card{overflow:hidden}` (used purely to clip child
+   content to the card's own rounded corners — see its own original Phase 6
+   rule far above) sits directly between this header and the page's actual
+   scrolling context. A plain `position:sticky` declaration still computes
+   (`getComputedStyle` reports "sticky") but never visibly STUCK — confirmed
+   with a real Chromium test that jumped the scroll position 400px past the
+   section's natural top and measured the header still moving right along
+   with it instead of pinning at the top of the viewport. Removing
+   `overflow:hidden` in an isolated test (same scroll test, same jump)
+   immediately fixed it — the header pinned at the top exactly as expected —
+   confirming the ancestor's overflow was the actual cause, not the sticky
+   declaration itself. The fix below is a targeted, ID-scoped override
+   (`#leads-workspace.leads-card{overflow:visible}`, mobile-only) rather
+   than touching the shared `.leads-card{overflow:hidden}` rule itself:
+   Quotations/Invoices/Team all reuse that same class for their own cards
+   and were never asked for sticky behavior, so their rounded-corner
+   clipping stays exactly as before. Verified this is visually safe for
+   Leads specifically: every element that touches the card's own top/bottom
+   rounded edges (the header, the empty state) has no background of its
+   own outside mobile — and once sticky is active, the header's own
+   `background:var(--surface)` below is the IDENTICAL colour to the card's
+   own `background:var(--surface)` (see `.metric-card,.card` far above), so
+   there is no contrasting square corner to reveal now that the rounded
+   clip is gone — only the table header row (`th{background:var(--surface-
+   soft)}`) has a different fill, and it never touches a rounded corner
+   (the toolbar and header always sit above it). No visual difference was
+   observed in the before/after screenshots at any of the 6 mobile widths.
+
+   top:0, not a positive offset, because — verified directly, not assumed —
+   `.mobile-header`/`.mobile-nav` (the "existing mobile header/navigation
+   that occupies space at the top" the brief warns about) are NOT
+   themselves position:sticky/fixed anywhere in this file (grep confirms
+   neither rule sets a `position` at all); they are ordinary in-flow content
+   that sits ABOVE `#leads-workspace` in the DOM (see index.html/js/ui.js's
+   renderApp: mobile-header and mobile-nav render once, before
+   `.main-content`, and #leads-workspace is deep inside `.main-content`,
+   after the dashboard metrics and the full analytics grid). By the time a
+   real scroll — or the existing `data-nav-target` click handler's
+   `scrollIntoView({block:'start'})` — brings `#leads-workspace`'s own top
+   anywhere near the viewport's top edge, the combined ~118px of mobile-
+   header + mobile-nav has already scrolled far off-screen above it (their
+   own height is trivial next to the dashboard metrics + full analytics
+   grid that precedes Leads on this single continuously-scrolling page).
+   Confirmed empirically with a real Chromium scroll-and-measure pass at
+   320/375/390/430/768/820px, AFTER the overflow fix above: the sticky
+   header actually pins at the viewport's top edge, never overlaps
+   `.mobile-header`/`.mobile-nav`, and the table rows that scroll underneath
+   it are the intended effect of a sticky header (see the Phase 12 report's
+   sticky-behavior table for the exact before/after pixel values). z-index:5
+   is comfortably below the invoice/quotation editor overlay (25) and the
+   modal layer (30), so it can never wrongly sit above either. Scoped to
+   899px (not 719px) to match this app's OWN existing mobile-shell
+   breakpoint exactly — the same width at which .sidebar hides and
+   .mobile-header/.mobile-nav appear (see the existing 899px block above) —
+   so "desktop and tablet should NOT receive this" is satisfied by reusing
+   the app's own already-established mobile/desktop boundary rather than
+   inventing a new one; 768px/820px do get it (they already render the
+   mobile shell at this breakpoint), 900px+ do not (they render the desktop
+   sidebar shell and were never asked for this). An opaque `background`
+   (not a translucent one) plus a `border-bottom` — the same divider
+   treatment `.toolbar` already uses elsewhere in this exact card — keeps
+   scrolling table content from visibly showing through underneath it. ---- */
+@media(max-width:899px){
+  #leads-workspace.leads-card{overflow:visible}
+  #leads-workspace .leads-card-header{
+    position:sticky;top:0;z-index:5;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    border-radius:var(--radius) var(--radius) 0 0;
+  }
+  [data-theme=dark] #leads-workspace .leads-card-header{background:var(--surface)}
+}
+
+/* ==========================================================================
+   PHASE 12.1 — UI CORRECTION PASS (manual-test brief, Aug 2026).
+   A correction to the Phase 12 pass above, found by real-browser visual
+   inspection after that phase shipped. Additive, per this project's
+   established phase-additive convention — the ONE in-place edit is
+   documented and searchable at "PHASE 12.1 CORRECTION" a little further up
+   in the Phase 12 Requirement-3 comment block (the `.table-wrap
+   td.actions{display:flex}` rule was replaced with a sibling-margin
+   approach; see that comment for the full root-cause writeup).
+   ========================================================================== */
+
+/* ---- Issue 3: mobile Leads sticky header verification. The brief asked
+   to inspect body/main-content/dashboard-wrapper/mobile-nav/Leads-section/
+   overflow/height to find what's actually blocking sticky. That inspection
+   (full ancestor-chain dump via getComputedStyle, from `.leads-card-header`
+   up through `.leads-card` → `.main-content` → `.workspace` → `.app-shell`
+   → `#app` → `body` → `html`) found NO additional blocking ancestor beyond
+   the one Phase 12 already found and fixed (`.leads-card{overflow:hidden}`,
+   already overridden to `visible` above). Every ancestor in the chain
+   computes `overflow:visible` except `body` itself, which carries this
+   file's pre-existing `overflow-x:hidden` (see the `body{...}` rule near
+   the top of this file) — CSS's overflow-pairing rule means `overflow-y`
+   on `body` computes to `auto` as a result, but per the CSS Overflow spec's
+   standard "propagation" behaviour (a `<body>` overflow value propagates to
+   the viewport when `<html>` doesn't set its own, which is the case here),
+   this does NOT make `<body>` itself a scrolling ancestor box that could
+   trap `position:sticky` — the viewport remains the actual scrolling
+   context, exactly as if `body` had no overflow rule at all.
+
+   Re-verified with real Chromium/Playwright at all 4 required widths
+   (320/375/390/430px), using the ACTUAL user flow (clicking the mobile
+   nav's "Leads" link, then real mouse-wheel scroll events in 150px steps —
+   not a single scroll jump) rather than a synthetic scroll-position
+   assignment: the header's `getBoundingClientRect().top` clamps to `0` and
+   STAYS at `0` through 12 consecutive wheel-scroll steps at every one of
+   the 4 widths, while the table rows underneath keep scrolling normally —
+   i.e. the sticky mechanism itself is confirmed working correctly with
+   the current CSS, unchanged from Phase 12, no further rule needed here.
+
+   If sticky still isn't visible in your own testing: this phase (like
+   Phase 12) made NO git commit/push/deploy per the brief's explicit "NO
+   GIT OPERATIONS" instruction, so crm.biosanjeevani.com's LIVE site still
+   only has the pre-Phase-12 code — only the local project files (now
+   updated to `?v=20260826j`, see the version bump below) have this fix.
+   If you're testing against the live site rather than these local files,
+   that fully explains "claims sticky but isn't" without any code defect —
+   worth double-checking which one you're viewing before assuming another
+   code-level cause. ---- */
+
+/* Export Feature (task #187) — "Export PDF" button styling. Reuses
+   .btn/.btn-secondary exactly as-is for color/border/hover/disabled states;
+   this only matches its sizing to the existing .clear-filters button it
+   sits beside in the Leads toolbar's .filter-row (same min-height/padding/
+   font-size), so the two buttons read as one consistent row on both desktop
+   and mobile. .filter-row already wraps/grids at narrow widths (see the
+   existing @media(max-width:899px) rule above) — no new responsive rule is
+   needed for this one additional button. */
+.export-button{min-height:34px;padding:6px 10px;font-size:.77rem}
+
+/* ---- Leads toolbar desktop/tablet wrap fix (post-Export-Feature bug
+   report). The Export PDF button above raised the Leads `.filter-row` to 9
+   controls (7 selects/inputs + Clear filters + Export PDF). Below the
+   existing 899px breakpoint that was never a problem — `.filter-row`
+   already switches to `display:grid` there and wraps naturally. ABOVE
+   899px, though, the base `.toolbar`/`.filter-row` rules (in the big
+   "Content" block near the top of this file) were plain
+   `display:flex` with no `flex-wrap` — flexbox's default is `nowrap`, so
+   at any desktop/tablet width too narrow to fit all 9 controls on one
+   unbroken line (measured: needs ~1250px+ just for `.filter-row` itself),
+   the row had nowhere to go but overflow, clipping/hiding whichever
+   controls landed past the visible edge — reported as Plant Location,
+   Clear filters and Export PDF being cut off.
+
+   Fix is the smallest possible change: add `flex-wrap:wrap` to the two
+   existing base rules (in place, right after their `display:flex`) —
+   nothing else about them changes. No HTML changed, no control removed,
+   no filtering/export logic touched. This only affects widths ABOVE
+   899px: at and below that breakpoint the existing, already-correct
+   `display:grid` override still fully takes over (an element's
+   `flex-wrap` has no effect once `display` is no longer `flex`), so
+   mobile is completely unaffected.
+
+   With wrap enabled, `.toolbar`'s two children (`.search`, `.filter-row`)
+   each take their own line whenever they don't both fit beside each
+   other — in practice `.search` (capped at `max-width:470px`) sits on its
+   own first line, and `.filter-row`'s 9 controls wrap themselves across
+   as many lines as the available width needs (1, 2 or 3, depending on
+   viewport — verified 1 line at very wide desktop, 2 lines at ~1366px and
+   ~1024px), using the SAME existing `--space-control-gap-tight` gap on
+   every wrapped line. Every control keeps its existing size/label/font —
+   nothing is shrunk to force a fit. ---- */
+
+/* ==========================================================================
+   CRM PHASE 1 — EXECUTIVE COMMAND CENTER REDESIGN (visual/UX only).
+   Scope, per the brief: the shell (.sidebar/.mobile-header/.mobile-nav/
+   theme toggle/account/logout) and the dashboard content rendered into
+   #dashboard-analytics by renderDashboard(), plus the #dashboard-overview
+   heading and the .metrics KPI cards. Nothing in #leads-workspace, the
+   lead modal, or #team-management is targeted below — this section only
+   ever adds NEW selectors or extends a selector already scoped to one of
+   the in-scope areas; no existing rule anywhere above this banner is
+   edited in place, following this file's own established additive
+   convention (see the PHASE 10/12 banners above).
+
+   Most of the "tone accent" system this redesign would otherwise have
+   introduced already exists in this file (see the PHASE 10 section: the
+   `.metrics[aria-label="Lead summary"] .metric-card:nth-child(n)` /
+   `.dashboard-priority .metric-card:nth-child(n)` rules already color
+   each KPI/priority card's top edge + icon chip). This section does not
+   duplicate that — it only adds what genuinely did not exist yet: real
+   inline-SVG icon sizing (js/ui.js's renderApp()/renderDashboard() now
+   emit js/icons.js markup in place of the old unicode glyphs, but nothing
+   sized or color-scoped that markup until now — every icon still inherits
+   its color from the exact same parent rule the old glyph did, so the
+   PHASE 10 tone system above colors these new icons automatically with
+   zero change needed there), the new real-time dashboard greeting, a
+   small color-coded dot for the My Follow-ups group labels (reusing the
+   EXISTING followup-badge color tokens, not new ones), and a categorical
+   color palette for the Lead Sources progress-bar list so it visually
+   pairs with the (unchanged, still-a-real-donut) Business Domains chart
+   beside it — hard constraint #3 in the brief. ========================================================================== */
+
+/* ---- Icons: js/icons.js emits `<svg class="crm-icon" ...>`, stroke-based
+   with stroke="currentColor" (a couple of small solid glyphs use
+   fill="currentColor" instead) — every icon therefore already inherits
+   whatever text/icon color its parent element already had (--muted on an
+   inactive nav item, --green when .is-active, --danger on logout hover,
+   var(--green)/--info/--warning/--purple on a metric-icon per the PHASE 10
+   nth-child rules above, etc.), so NO new color rule is needed anywhere in
+   this file for icon tinting — only sizing. Sized per context so each
+   icon reads at roughly the same visual weight its old unicode glyph did
+   in that exact spot, never larger than its fixed-size container. */
+.crm-icon{display:block;width:18px;height:18px}
+.nav-icon .crm-icon{width:18px;height:18px}
+.metric-icon .crm-icon{width:19px;height:19px}
+.logout-icon .crm-icon{width:18px;height:18px}
+.dashboard-empty .crm-icon{width:20px;height:20px}
+/* The theme-toggle icon span carries no dedicated class (desktop sidebar
+   button, mobile icon-only header button, and the auth-page toggle — out
+   of scope — all share the same two-span `.theme-toggle` markup) — sized
+   directly via the existing aria-hidden attribute already on that one
+   span, so no markup change was needed to target it. */
+.theme-toggle span[aria-hidden]{display:inline-flex;align-items:center}
+.theme-toggle span[aria-hidden] .crm-icon{width:16px;height:16px}
+
+/* ---- Dashboard greeting: a small, real-time, real-user line above the
+   existing "LEAD MANAGEMENT" eyebrow in #dashboard-overview (in scope —
+   the page heading). Deliberately quieter than the eyebrow/h1 below it
+   (smaller, muted color, no letter-spacing) so it reads as a warm aside,
+   not a competing heading — "Business leads" stays the one real h1. */
+.dashboard-greeting{margin:0 0 6px;color:var(--muted);font-size:.83rem;font-weight:650}
+
+/* ---- My Follow-ups group labels: a small solid color dot per group,
+   reusing the SAME FOLLOW_UP_BADGE_CLASSES class names js/ui.js already
+   applies to the "Next Action" badge in the Lead Directory table (see
+   followUpBadge()/FOLLOW_UP_BADGE_CLASSES in js/ui.js) — so "Due Today"
+   reads green, "Overdue" reads danger-red, "Upcoming" reads info-blue,
+   the exact same color language already used for that exact status
+   everywhere else in the app, never a new mapping invented here. Applying
+   those class names to a 7px dot (rather than the full `.followup-badge`
+   pill) needs its own `background` — the bare `.followup-*` rules above
+   set a soft/pale background+text color meant for a pill with visible
+   text, which would render as a barely-visible tint on a dot this small;
+   the two-class selectors below (equal-or-higher specificity, so they win
+   regardless of source order) give the dot a solid fill instead, without
+   touching the original pill rules those same class names already drive
+   elsewhere. */
+.group-dot{display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;vertical-align:middle}
+.group-dot.followup-overdue{background:var(--danger)}
+.group-dot.followup-due-today{background:var(--green)}
+.group-dot.followup-upcoming{background:var(--info)}
+/* CRM Phase 5 — "My Follow-ups" group headers (Due Today/Overdue/Upcoming):
+   promoted from a plain small muted label to a proper section divider —
+   bolder ink colour, uppercase tracking and a hairline rule underneath —
+   so the three groups read as distinct sections above their own card rows,
+   matching the section-kicker language used elsewhere on this dashboard.
+   `.followups-group-label` already carries the `.breakdown-label` class too
+   (see js/ui.js's myFollowUpsHtml), so this rule is kept scoped to the
+   MORE SPECIFIC `.followups-group-label` selector only — Lead Sources'
+   bare `.breakdown-label` rows (out of scope) are unaffected. The child
+   combinator (`>span`) targets only the label's own wrapping span, not the
+   nested `.group-dot` span, so the dot's `display:inline-block` sizing
+   above is never overridden. */
+.followups-group-label{margin-top:18px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.followups-group-label>span{display:flex;align-items:center;color:var(--ink);font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+
+/* ---- Lead Sources: categorical color per row (was one flat blue for
+   every row — `.progress-fill.source{background:#5c83ba}`, still true
+   above, still the fallback for any row past the 9th) so this card reads
+   as a multi-category breakdown that visually pairs with the Business
+   Domains donut beside it, per the brief's explicit "make Lead Sources
+   pair well with the donut" requirement. Scoped to the exact card/list
+   this data renders into (`.analytics-breakdowns .source-list`) so the
+   base `.progress-fill.source` rule — unused as a fallback here but kept
+   exactly as-is — is not touched, and nothing outside this one dashboard
+   card is affected. Colors 1-5 reuse the SAME five tokens already used
+   for status pills/the donut/pipeline bars elsewhere on this exact
+   dashboard; 6-8 are a `color-mix` BLEND of two of those same existing
+   tokens (not a new raw color) for a touch more variety across a 9-row
+   list; the 9th (and any row beyond it) uses `var(--muted)` — a
+   deliberately neutral treatment for whatever "Other" catch-all bucket
+   naturally sorts last in OPTIONS.lead_source. */
+.analytics-breakdowns .source-list .breakdown-row:nth-child(1) .progress-fill.source{background:var(--green)}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(2) .progress-fill.source{background:var(--info)}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(3) .progress-fill.source{background:var(--purple)}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(4) .progress-fill.source{background:var(--warning)}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(5) .progress-fill.source{background:var(--leaf)}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(6) .progress-fill.source{background:color-mix(in srgb,var(--green) 55%,var(--info))}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(7) .progress-fill.source{background:color-mix(in srgb,var(--purple) 55%,var(--warning))}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(8) .progress-fill.source{background:color-mix(in srgb,var(--info) 55%,var(--leaf))}
+.analytics-breakdowns .source-list .breakdown-row:nth-child(n+9) .progress-fill.source{background:var(--muted)}
+
+@media(max-width:719px){
+  .dashboard-greeting{font-size:.8rem}
+}
+
+/* ==========================================================================
+   CRM PHASE 2 — LEAD DIRECTORY REDESIGN (visual/UX only).
+   Scope, per the brief: everything rendered inside #leads-workspace — its
+   header, search box, filter row, active-filter chips, table (all columns/
+   badges/row actions), and its empty/loading/error states. Nothing outside
+   #leads-workspace is targeted below (the dashboard/shell from Phase 1, the
+   Add/Edit Lead modal, Team Management and Finance are all untouched, exactly
+   as required) — this section only ever adds NEW selectors, or extends a
+   selector via a separate, MORE SPECIFIC (ID-scoped) rule so cascade order
+   never matters; no existing rule above this banner is edited in place
+   except the two specific extensions the brief itself called for (search
+   "CRM PHASE 2 — in-place extension" a little further up: the
+   `.status-*:before` dot selector list and the `.status-lost` color block
+   both gained new `.priority-hot`/`.priority-warm`/`.priority-cold` entries,
+   reusing the exact existing --danger/--warning/--info + *-soft tokens
+   already used elsewhere on this exact table — no new colors invented, per
+   the brief's own instruction).
+
+   Two confirmed, measured bugs fixed here (see the brief):
+   1. Priority badges (Hot/Warm/Cold) had ZERO color rules anywhere in this
+      file — every priority rendered as plain grey `.badge`. Fixed via the
+      two in-place extensions described above (same restrained soft-
+      background + currentColor-dot treatment every `.status-*` badge
+      already uses — no new visual language invented for this).
+   2. A genuinely long Plant Location value (73 characters, measured) wrapped
+      at close to one-word-per-line inside its ~131px fixed-layout column,
+      ballooning that row's height (121px vs a normal row's much shorter
+      height), because the cell had no `white-space`/truncation treatment at
+      all. Fixed below with the same desktop/tablet single-line-ellipsis +
+      full-text `title` fallback technique already proven on the Meeting
+      column (see the "FINAL BATCH — Change 5" comment above) —
+      deliberately scoped to ≥720px only: the ≤719px mobile card-stack
+      layout gives every field its own full-width row, where normal
+      wrapping reads fine and was never the reported problem, so no rule is
+      added there and it keeps its existing default wrapping behavior.
+      js/ui.js's renderLeads() now wraps the cell's text in a
+      `.plant-location-text` span and adds a `title` attribute on the `<td>`
+      itself carrying the untruncated value whenever one exists — this CSS
+      only ever handles the *presentation* of that already-complete markup.
+   ========================================================================== */
+
+/* ---- Bug fix 2: Plant Location single-line truncation (desktop/tablet
+   only — see rationale above). ---- */
+@media(min-width:720px){
+  #leads-workspace .table-wrap td[data-label="Plant Location"] .plant-location-text{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+/* ---- Toolbar: search icon + control-height consistency.
+   js/ui.js's renderApp() now emits `${icon('search')}` (a real inline-SVG
+   from the same js/icons.js module Phase 1 already established) in place of
+   the old plain "⌕" unicode glyph inside `.search>span` — visually
+   sharper and consistent with the row-action icons below. This only
+   re-centers/sizes an SVG in place of a font-sized character; `.search>span`
+   and `.crm-icon`'s own base rules (far above) are left completely
+   untouched — these are separate, higher-specificity (ID-scoped) overrides
+   that win the cascade regardless of source order, exactly the technique
+   already used elsewhere in this file (e.g. the Phase 12 sticky-header
+   override). ---- */
+#leads-workspace .search>span{top:50%;left:12px;transform:translateY(-50%);display:inline-flex;color:var(--muted)}
+#leads-workspace .search .crm-icon{width:16px;height:16px}
+
+/* Every filter-row control (the 7 status/domain/assigned/follow-up/
+   priority/source/capacity selects, plus the Plant Location text input)
+   previously inherited the plain base `input,select{padding:11px 12px}`
+   rule with no explicit height, while the Clear filters / Export PDF
+   buttons sitting right beside them in the same row are a deliberately
+   compact 34px (see `.clear-filters`/`.export-button` above) — the two
+   visibly misaligned in height. Matching every filter-row control to that
+   same 34px/6px-10px sizing is a pure control-height change: no filter id,
+   value, option list or filtering behavior is touched — js/app.js's
+   filtering logic reads these same elements exactly as before. ---- */
+#leads-workspace .filter-row select,#leads-workspace .filter-row input{min-height:34px;padding:6px 10px}
+
+/* ---- Card header: a touch more presence for the "Leads" title, matching
+   the weight Phase 1 already gave the dashboard's own card headings.
+   Scoped to this card only via the ID, so the shared `.leads-card-header
+   h2` base rule (also used by Quotations/Invoices/Team, all out of scope)
+   is left completely untouched for every other card. ---- */
+#leads-workspace .leads-card-header h2{font-size:1.15rem;letter-spacing:-.01em}
+
+/* ---- Table: a smoother hover transition (was an instant background
+   swap) — purely cosmetic; the hover color itself is still whatever the
+   base `tbody tr:hover` rule above already sets, unchanged. ---- */
+#leads-workspace .table-wrap tbody tr{transition:background .15s ease}
+
+/* ---- Row actions: Edit/Delete are now compact, centered icon buttons.
+   js/ui.js's renderLeads() swaps their visible "Edit"/"Delete" text for
+   `icon('edit')`/`icon('trash')` — data-action/data-lead-id/aria-label/
+   title are all completely unchanged, so js/app.js's delegated
+   `[data-action]` click handler and every screen-reader-announced name
+   keep working exactly as before (verified: js/app.js matches these
+   buttons via `.closest('.edit-lead')`/`.closest('.delete-lead')`, and
+   both classes are still present, untouched).
+
+   Scoped to `#leads-workspace .table-wrap td.actions` specifically so the
+   shared `.icon-button`/`.icon-button.danger` classes — also reused by the
+   Add/Edit Lead modal's Activity-delete button, out of this phase's scope
+   — are never touched themselves; only this one table's row-action buttons
+   get the new square, icon-sized treatment. Desktop/tablet intentionally
+   keeps the cell's native `table-cell` display (no `display:flex` on the
+   `<td>` itself) and the existing sibling-margin gap technique from Phase
+   12's Requirement 3 fix (documented above) for the exact horizontal-
+   containment reason that comment explains — only the buttons' own
+   box/icon sizing changes here, not the cell's layout mode. ---- */
+@media(min-width:720px){
+  #leads-workspace .table-wrap td.actions .icon-button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;vertical-align:middle}
+  #leads-workspace .table-wrap td.actions .icon-button .crm-icon{width:16px;height:16px}
+}
+@media(max-width:719px){
+  #leads-workspace .table-wrap td.actions .icon-button{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;min-height:36px;padding:0}
+  #leads-workspace .table-wrap td.actions .icon-button .crm-icon{width:17px;height:17px}
+}
+
+/* ---- Column widths: real-measurement correction (an additional bug found
+   while satisfying this phase's own "verify this stays true after your
+   changes... rather than assuming it's still fine" instruction — NOT
+   something this phase's own changes caused; re-confirmed by temporarily
+   disabling the new priority dot above and re-measuring, the same four
+   columns were already short before that rule existed).
+
+   Real Playwright `scrollWidth` vs `clientWidth` measurements across the
+   FULL 47-lead harness dataset (every row, not row 0, not a screenshot)
+   found FOUR columns whose badge already truncates its realistic longest
+   value — identical at 1440/1280/1024px, confirmed, because the table
+   sits at its own `min-width` floor at every one of those widths (its
+   container, #leads-workspace inside `.main-content` beside the sidebar,
+   never gets close to 1460px of usable width even at 1440px viewport, so
+   `width:100%` never wins over `min-width` there):
+     - Domain   "Biogas / CBG"      needs  90px content-box width, had 74px
+     - Type     "Partnership"       needs  77px content-box width, had 59px
+     - Priority "Warm Lead" (+dot)  needs  83px content-box width, had 59px
+     - Status   "Meeting Completed" needs 127px content-box width, had 103px
+   Meeting / Source / Assigned To / Next Action / Plant Capacity were
+   re-measured the same way and already fit their own realistic longest
+   value with zero truncation — left at their EXACT original pixel widths
+   below. Plant Location is deliberately left untouched too — its
+   single-line ellipsis truncation (added above) is intentional, for long
+   addresses, not a bug.
+
+   Fix: a full replacement of the 12-selector widths block above, appended
+   here so ordinary cascade order (not added specificity — same selectors)
+   is what makes it win, matching this file's own established override
+   convention (e.g. the Phase 12 sticky-header override far above). Domain/
+   Type/Priority/Status grow by their real measured deficit plus a small
+   safety buffer; Actions shrinks slightly (it only ever holds two 32px
+   icon buttons now, not the old "Edit"/"Delete" text labels, so it has
+   real spare room to give back); every other column keeps its exact
+   original pixel width, unchanged. The table's own min-width grows from
+   1460px to 1568px to hold the net increase — the same "more (fully
+   contained) horizontal scroll room, in exchange for every column having
+   enough room for its real content" trade-off the original FINAL BATCH —
+   Change 5 fix already made (840px -> 1460px), just extended further with
+   real numbers behind it. No column is removed, reordered, or sized below
+   its own measured need. ---- */
+@media(min-width:720px){
+  #leads-workspace .table-wrap table{table-layout:fixed;min-width:1568px}
+  #leads-workspace .table-wrap th:nth-child(1),#leads-workspace .table-wrap td:nth-child(1){width:12.1%}
+  #leads-workspace .table-wrap th:nth-child(2),#leads-workspace .table-wrap td:nth-child(2){width:8.7%}
+  #leads-workspace .table-wrap th:nth-child(3),#leads-workspace .table-wrap td:nth-child(3){width:7.8%}
+  #leads-workspace .table-wrap th:nth-child(4),#leads-workspace .table-wrap td:nth-child(4){width:8.2%}
+  #leads-workspace .table-wrap th:nth-child(5),#leads-workspace .table-wrap td:nth-child(5){width:11%}
+  #leads-workspace .table-wrap th:nth-child(6),#leads-workspace .table-wrap td:nth-child(6){width:8.4%}
+  #leads-workspace .table-wrap th:nth-child(7),#leads-workspace .table-wrap td:nth-child(7){width:8.9%}
+  #leads-workspace .table-wrap th:nth-child(8),#leads-workspace .table-wrap td:nth-child(8){width:7.5%}
+  #leads-workspace .table-wrap th:nth-child(9),#leads-workspace .table-wrap td:nth-child(9){width:5.9%}
+  #leads-workspace .table-wrap th:nth-child(10),#leads-workspace .table-wrap td:nth-child(10){width:8.4%}
+  #leads-workspace .table-wrap th:nth-child(11),#leads-workspace .table-wrap td:nth-child(11){width:6.5%}
+  #leads-workspace .table-wrap th:nth-child(12),#leads-workspace .table-wrap td:nth-child(12){width:6.9%}
+}
+
+/* ==========================================================================
+   CRM PHASE 5 — MEETINGS / FOLLOW-UPS / ACTIVITY HISTORY (visual/UX only).
+   Scope, per the brief: the Dashboard's `.dashboard-priority` (styled
+   in-place further up this file, search "CRM Phase 5 — Today's
+   Priorities"), `.meetings-card` and `.my-followups-card`, plus the Lead
+   modal's "Activity History" fieldset (`.lead-activity-*`, also styled
+   in-place further up — search "CRM Phase 5 — Activity History redesign").
+   Everything below is either a brand-new, additively-scoped selector (never
+   editing an existing shared rule's declarations in place) or the one new
+   `.form-section-activity` modifier class the brief itself suggested for
+   differentiating fieldset 07 without touching the shared, Phase-3-locked
+   `.lead-modal .form-section` rule. `.followup-badge`/its four state
+   classes, every bare `.status-*` colour rule, `.dashboard-empty`'s own
+   base declarations and `.meeting-item`'s base declarations are all left
+   completely untouched — see the phase report for the grep-diff proof. All
+   colours reuse existing :root/[data-theme=dark] tokens; no new colours are
+   introduced.
+   ========================================================================== */
+
+/* ---- Upcoming Meetings & My Follow-ups: each row becomes its own bordered
+   card (was a flat list separated only by a 1px top divider shared with
+   Recent Leads' `.activity-item`) so both schedule-driven dashboard cards
+   read with the same card density as the rest of the dashboard. Scoped to
+   these two card wrappers only via a 3-class-specificity descendant
+   selector — Recent Leads' `.activity-list`/`.activity-item` (same base
+   combined rule, out of scope) is completely unaffected, and the shared
+   `.meeting-item`/`.activity-item,.meeting-item,.followup-meeting-item`
+   base rules further up this file are left exactly as they were, simply
+   out-specificity'd here for descendants of these two cards only. ---- */
+.meetings-card .meeting-list,.my-followups-card .meeting-list{gap:10px}
+.meetings-card .meeting-item,.my-followups-card .meeting-item{padding:12px;border:1px solid var(--line);border-top:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-soft)}
+.meetings-card .meeting-item:first-child,.my-followups-card .meeting-item:first-child{border-top:1px solid var(--line)}
+[data-theme=dark] .meetings-card .meeting-item,[data-theme=dark] .my-followups-card .meeting-item{background:var(--surface)}
+.meetings-card .meeting-item:hover,.my-followups-card .meeting-item:hover{border-color:color-mix(in srgb,var(--green) 26%,var(--line));background:var(--surface)}
+[data-theme=dark] .meetings-card .meeting-item:hover,[data-theme=dark] .my-followups-card .meeting-item:hover{background:var(--surface-elevated)}
+.meetings-card .meeting-item time,.my-followups-card .meeting-item time{width:40px;height:40px;background:color-mix(in srgb,var(--green) 12%,var(--surface));font-weight:800}
+
+/* ---- Empty states inside these two cards: a slightly larger icon ring and
+   minimum height so "No upcoming meetings scheduled."/"No follow-ups
+   assigned to you yet."/"Sign in to see your assigned follow-ups." (exact
+   copy unchanged — see js/ui.js) reads as an intentional, roomier
+   placeholder rather than a cramped one-liner. `.dashboard-empty`'s own
+   base rule (shared with Recent Leads) is untouched; this only adds a new,
+   more specific override for these two cards. ---- */
+.meetings-card .dashboard-empty,.my-followups-card .dashboard-empty{min-height:170px}
+.meetings-card .dashboard-empty span,.my-followups-card .dashboard-empty span{width:44px;height:44px}
+
+/* ---- Activity History fieldset differentiation: per the brief, rather
+   than editing the shared, Phase-3-locked `.lead-modal .form-section` rule
+   (every one of the 7 fieldsets), fieldset 07 alone now also carries this
+   new `form-section-activity` class in its markup (see js/ui.js's
+   openLeadModal) so its card can read as a slightly more "elevated" surface
+   than its 6 sibling fieldsets — appropriate for a section that's a log of
+   many small entries rather than a handful of fields — without touching
+   the shared rule those siblings still rely on unchanged. ---- */
+.lead-modal .form-section-activity{background:var(--surface)}
+[data-theme=dark] .lead-modal .form-section-activity{background:var(--surface-elevated)}

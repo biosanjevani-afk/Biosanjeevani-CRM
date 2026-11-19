@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Biosanjeevani Sustainable Solutions lead management CRM" />
+    <title>Biosanjeevani - CRM</title>
+    <!-- Phase 8 — Change 2: relative path (no leading slash), matching every
+         other asset reference in this app (see the logo <img> tags in
+         js/ui.js). Resolves correctly regardless of whether the CRM is
+         served from a domain root or a subdirectory, since it's resolved
+         relative to this file's own location, not the site root. -->
+    <link rel="icon" type="image/png" href="assets/biosanjeevani-logo.png" />
+    <script>
+      (() => {
+        const savedTheme = localStorage.getItem('biosanjeevani-theme');
+        const theme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=20260916h" />
+  </head>
+  <body>
+    <main id="app" aria-live="polite">
+      <!-- Phase 10.1 — Loading screen redesign (manual-test brief, Aug 2026):
+           purely a richer visual shell around the same loading moment; no
+           id/behavior anything downstream relies on. js/app.js's
+           renderAuthLoading() (the next loading state, shown once the
+           Supabase session check starts) uses the same visual structure
+           with its own status text — see that function for why they're
+           kept in sync as a pair. -->
+      <section id="loading-screen" class="page-loader loading-screen">
+        <div class="loading-scene" aria-hidden="true">
+          <span class="loading-ring loading-ring-outer"></span>
+          <span class="loading-ring loading-ring-inner"></span>
+          <span class="loading-dot loading-dot-1"></span>
+          <span class="loading-dot loading-dot-2"></span>
+          <span class="loading-dot loading-dot-3"></span>
+          <span class="loading-dot loading-dot-4"></span>
+          <span class="loading-mark"><span class="loading-leaf"><span></span><span></span></span></span>
+        </div>
+        <h1 class="loading-brand">Biosanjeevani <span>CRM</span></h1>
+        <p class="loading-tagline">Nurturing connections. Growing together.</p>
+        <div class="loading-bar" aria-hidden="true"><span class="loading-bar-fill"></span></div>
+        <p class="loading-status">Loading your workspace…</p>
+        <ul class="loading-features">
+          <li><span class="loading-feature-icon" aria-hidden="true">◈</span>Secure</li>
+          <li><span class="loading-feature-icon" aria-hidden="true">◉</span>Reliable</li>
+          <li><span class="loading-feature-icon" aria-hidden="true">❁</span>Sustainable</li>
+        </ul>
+        <p class="loading-footer">© 2025 Biosanjeevani. All rights reserved.</p>
+      </section>
+    </main>
+    <div id="toast-region" class="toast-region" aria-live="assertive" aria-atomic="true"></div>
+    <script type="module" src="js/app.js?v=20260916c"></script>
+  </body>
+</html>
